@@ -1,164 +1,218 @@
-import { Link, useNavigate } from 'react-router'
-import { FcGoogle } from 'react-icons/fc'
-import useAuth from '../../hooks/useAuth'
-import { toast } from 'react-hot-toast'
-import { TbFidgetSpinner } from 'react-icons/tb'
+import { useState } from "react";
+import { Link, useNavigate } from "react-router"; // fixed path
+import { Helmet } from "react-helmet";
+import { Eye, EyeOff, AlertCircle } from "lucide-react";
+import Swal from "sweetalert2";
+import useAuth from "../../hooks/useAuth";
+import { saveImgCloud } from "../../api/utils";
+
 
 const SignUp = () => {
-  const { createUser, updateUserProfile, signInWithGoogle, loading } = useAuth()
-  const navigate = useNavigate()
-  // form submit handler
-  const handleSubmit = async event => {
-    event.preventDefault()
-    const form = event.target
-    const name = form.name.value
-    const email = form.email.value
-    const password = form.password.value
+    const [name, setName] = useState("");
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
+    // const [photoURL, setPhotoURL] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
 
-    try {
-      //2. User Registration
-      const result = await createUser(email, password)
+    const { createUser, updateUserProfile } = useAuth()
 
-      //3. Save username & profile photo
-      await updateUserProfile(
-        name,
-        'https://lh3.googleusercontent.com/a/ACg8ocKUMU3XIX-JSUB80Gj_bYIWfYudpibgdwZE1xqmAGxHASgdvCZZ=s96-c'
-      )
-      console.log(result)
+    const navigate = useNavigate();
 
-      navigate('/')
-      toast.success('Signup Successful')
-    } catch (err) {
-      console.log(err)
-      toast.error(err?.message)
-    }
-  }
+    const validateForm = () => {
+        const validations = [
+            { rule: /(?=.*\d)/, message: "Must include at least one number" },
+            { rule: /(?=.*[a-z])/, message: "Must include a lowercase letter" },
+            { rule: /(?=.*[A-Z])/, message: "Must include an uppercase letter" },
+            { rule: /.{6,}/, message: "Minimum 6 characters" },
+        ];
+        for (const v of validations) {
+            if (!v.rule.test(password)) {
+                setError(v.message);
+                return false;
+            }
+        }
+        return true;
+    };
 
-  // Handle Google Signin
-  const handleGoogleSignIn = async () => {
-    try {
-      //User Registration using google
-      await signInWithGoogle()
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError("");
+        const image = e.target.image.files[0]
 
-      navigate('/')
-      toast.success('Signup Successful')
-    } catch (err) {
-      console.log(err)
-      toast.error(err?.message)
-    }
-  }
-  return (
-    <div className='flex justify-center items-center min-h-screen bg-white'>
-      <div className='flex flex-col max-w-md p-6 rounded-md sm:p-10 bg-gray-100 text-gray-900'>
-        <div className='mb-8 text-center'>
-          <h1 className='my-3 text-4xl font-bold'>Sign Up</h1>
-          <p className='text-sm text-gray-400'>Welcome to PlantNet</p>
-        </div>
-        <form
-          onSubmit={handleSubmit}
-          noValidate=''
-          action=''
-          className='space-y-6 ng-untouched ng-pristine ng-valid'
-        >
-          <div className='space-y-4'>
-            <div>
-              <label htmlFor='email' className='block mb-2 text-sm'>
-                Name
-              </label>
-              <input
-                type='text'
-                name='name'
-                id='name'
-                placeholder='Enter Your Name Here'
-                className='w-full px-3 py-2 border rounded-md border-gray-300 focus:outline-lime-500 bg-gray-200 text-gray-900'
-                data-temp-mail-org='0'
-              />
-            </div>
-            <div>
-              <label htmlFor='image' className='block mb-2 text-sm'>
-                Select Image:
-              </label>
-              <input
-                className='bg-gray-200 cursor-pointer'
-                type='file'
-                id='image'
-                name='image'
-                accept='image/*'
-              />
-            </div>
-            <div>
-              <label htmlFor='email' className='block mb-2 text-sm'>
-                Email address
-              </label>
-              <input
-                type='email'
-                name='email'
-                id='email'
-                required
-                placeholder='Enter Your Email Here'
-                className='w-full px-3 py-2 border rounded-md border-gray-300 focus:outline-lime-500 bg-gray-200 text-gray-900'
-                data-temp-mail-org='0'
-              />
-            </div>
-            <div>
-              <div className='flex justify-between'>
-                <label htmlFor='password' className='text-sm mb-2'>
-                  Password
-                </label>
-              </div>
-              <input
-                type='password'
-                name='password'
-                autoComplete='new-password'
-                id='password'
-                required
-                placeholder='*******'
-                className='w-full px-3 py-2 border rounded-md border-gray-300 focus:outline-lime-500 bg-gray-200 text-gray-900'
-              />
-            </div>
-          </div>
+        if (password !== confirmPassword) {
+            setError("Passwords do not match");
+            return;
+        }
 
-          <div>
-            <button
-              type='submit'
-              className='bg-lime-500 w-full rounded-md py-3 text-white'
-            >
-              {loading ? (
-                <TbFidgetSpinner className='animate-spin m-auto' />
-              ) : (
-                'Continue'
-              )}
-            </button>
-          </div>
-        </form>
-        <div className='flex items-center pt-4 space-x-1'>
-          <div className='flex-1 h-px sm:w-16 dark:bg-gray-700'></div>
-          <p className='px-3 text-sm dark:text-gray-400'>
-            Signup with social accounts
-          </p>
-          <div className='flex-1 h-px sm:w-16 dark:bg-gray-700'></div>
-        </div>
-        <div
-          onClick={handleGoogleSignIn}
-          className='flex justify-center items-center space-x-2 border m-3 p-2 border-gray-300 border-rounded cursor-pointer'
-        >
-          <FcGoogle size={32} />
+        if (!validateForm()) return;
 
-          <p>Continue with Google</p>
-        </div>
-        <p className='px-6 text-sm text-center text-gray-400'>
-          Already have an account?{' '}
-          <Link
-            to='/login'
-            className='hover:underline hover:text-lime-500 text-gray-600'
-          >
-            Login
-          </Link>
-          .
-        </p>
-      </div>
-    </div>
-  )
-}
+        setLoading(true);
+        try {
 
-export default SignUp
+            const { imgUrl } = await saveImgCloud(image)
+            // setPhotoURL(imgUrl)
+            // console.log(photoURL);
+
+            await createUser(email, password, name);
+            await updateUserProfile(name, imgUrl)
+            Swal.fire("Success", "Registration successful", "success");
+            navigate("/");
+        } catch (error) {
+            setError(error.message || "Something went wrong. Try again.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <>
+            <Helmet>
+                <title>Register</title>
+            </Helmet>
+            <div className="min-h-screen flex items-center justify-center  px-4">
+                <div className="   rounded-xl p-8 
+w-full max-w-md bg-base-100  border border-neutral/20 
+        shadow-md overflow-hidden transition-transform duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-accent-content   cursor-pointer
+                
+                ">
+                    <h2 className="text-center text-3xl font-bold text-primary mb-1">
+                        Create Account
+                    </h2>
+                    <p className="text-center text-sm text-base-content/70 mb-5">
+                        Join With Us
+                    </p>
+
+                    {error && (
+                        <div className="alert alert-error mb-4 text-sm">
+                            <AlertCircle size={20} />
+                            <span>{error}</span>
+                        </div>
+                    )}
+
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div>
+                            <label htmlFor="name" className="label-text">
+                                Full Name
+                            </label>
+                            <input
+                                id="name"
+                                type="text"
+                                placeholder="Your name"
+                                className="input input-bordered w-full"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <label htmlFor="email" className="label-text">
+                                Email
+                            </label>
+                            <input
+                                id="email"
+                                type="email"
+                                placeholder="Your email"
+                                className="input input-bordered w-full"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <label htmlFor="photoURL" className="label-text">
+                                Profile Photo URL (optional)
+                            </label>
+                            {/* <input
+                                id="photoURL"
+                                type="url"
+                                placeholder="Image URL"
+                                className="input input-bordered w-full"
+                                value={photoURL}
+                                onChange={(e) => setPhotoURL(e.target.value)}
+                            /> */}
+                            <input
+                                type="file"
+                                name="image"
+                                className="file-input file-input-sm w-full" />
+
+                        </div>
+
+                        <div>
+                            <label htmlFor="password" className="label-text ">
+                                Password
+                            </label>
+                            <div className="relative">
+                                <input
+                                    id="password"
+                                    type={showPassword ? "text" : "password"}
+                                    placeholder="Create password"
+                                    className="input input-bordered w-full pr-10"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    required
+                                />
+                                <button
+                                    type="button"
+                                    className="absolute top-1/2 right-3 -translate-y-1/2 text-base-content/60"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                >
+                                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label htmlFor="confirmPassword" className="label-text">
+                                Confirm Password
+                            </label>
+                            <div className="relative">
+                                <input
+                                    id="confirmPassword"
+                                    type={showPassword ? "text" : "password"}
+                                    placeholder="Confirm password"
+                                    className="input input-bordered w-full pr-10"
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    required
+                                />
+                                <button
+                                    type="button"
+                                    className="absolute top-1/2 right-3 -translate-y-1/2 text-base-content/60"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                >
+                                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                </button>
+                            </div>
+                        </div>
+
+                        <button
+                            type="submit"
+                            className="btn btn-primary w-full"
+                            disabled={loading}
+                        >
+                            {loading ? (
+                                <span className="loading loading-spinner loading-sm"></span>
+                            ) : (
+                                "Create Account"
+                            )}
+                        </button>
+                    </form>
+
+                    <p className="mt-6 text-center text-sm text-base-content/70">
+                        Already have an account?{" "}
+                        <Link to="/login" className="link link-primary font-semibold">
+                            Login here
+                        </Link>
+                    </p>
+                </div>
+            </div >
+        </>
+    );
+};
+
+export default SignUp;

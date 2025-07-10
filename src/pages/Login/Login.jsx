@@ -1,143 +1,152 @@
-import { Link, Navigate, useLocation, useNavigate } from 'react-router'
-import { FcGoogle } from 'react-icons/fc'
-import useAuth from '../../hooks/useAuth'
-import toast from 'react-hot-toast'
-import { TbFidgetSpinner } from 'react-icons/tb'
-import LoadingSpinner from '../../components/Shared/Spinner/LoadingSpinner'
+import { useState } from "react";
+import { Link, useNavigate } from "react-router";
+import { Helmet } from "react-helmet";
+import { Eye, EyeOff } from "lucide-react";
+import Swal from "sweetalert2";
+import useAuth from "../../hooks/useAuth";
 
 
 const Login = () => {
-    const { signIn, signInWithGoogle, loading, user } = useAuth()
-    const navigate = useNavigate()
-    const location = useLocation()
-    const from = location?.state?.from?.pathname || '/'
-    if (user) return <Navigate to={from} replace={true} />
-    if (loading) return <LoadingSpinner />
-    // form submit handler
-    const handleSubmit = async event => {
-        event.preventDefault()
-        const form = event.target
-        const email = form.email.value
-        const password = form.password.value
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
+    const [error, setError] = useState("");
+
+    // const authInfo = {
+
+    //     setUser,
+    //     loading,
+    //     setLoading,
+    //     createUser,
+    //     signIn,
+    //     signInWithGoogle,
+    //     logOut,
+    //     updateUserProfile,
+    // }
+    const { signIn, signInWithGoogle, loading, setLoading } = useAuth();
+    const navigate = useNavigate();
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError("");
 
         try {
-            //User Login
-            await signIn(email, password)
-
-            navigate(from, { replace: true })
-            toast.success('Login Successful')
+            await signIn(email, password);
+            Swal.fire({ title: "Login Successful!", icon: "success" });
+            navigate("/");
         } catch (err) {
-            console.log(err)
-            toast.error(err?.message)
+            console.error("Login error:", err);
+            setError("Invalid email or password.");
+            Swal.fire({ title: "Login Failed!", icon: "error" });
+            setLoading(false); // ✅ Important: Reset loading if login failed
         }
-    }
+    };
 
-    // Handle Google Signin
-    const handleGoogleSignIn = async () => {
+    const handleGoogleLogin = async () => {
+        setError("");
         try {
-            //User Registration using google
+            setLoading(true);
             await signInWithGoogle()
-            navigate(from, { replace: true })
-            toast.success('Login Successful')
+            Swal.fire({ title: "Login Successful!", icon: "success" });
+            navigate("/");
         } catch (err) {
-            console.log(err)
-            toast.error(err?.message)
+            console.error("Google login error:", err);
+            setError("Google login failed.");
+            Swal.fire({ icon: "error", title: "Oops...", text: "Google login failed!" });
+            setLoading(false);
         }
-    }
+    };
+
     return (
-        <div className='flex justify-center items-center min-h-screen bg-white'>
-            <div className='flex flex-col max-w-md p-6 rounded-md sm:p-10 bg-gray-100 text-gray-900'>
-                <div className='mb-8 text-center'>
-                    <h1 className='my-3 text-4xl font-bold'>Log In</h1>
-                    <p className='text-sm text-gray-400'>
-                        Sign in to access your account
-                    </p>
-                </div>
-                <form
-                    onSubmit={handleSubmit}
-                    noValidate=''
-                    action=''
-                    className='space-y-6 ng-untouched ng-pristine ng-valid'
-                >
-                    <div className='space-y-4'>
+        <>
+            <Helmet><title>Login</title></Helmet>
+
+            <div className="min-h-screen flex items-center justify-center py-12 px-4">
+                <div className="w-full max-w-md bg-base-100 border rounded-xl p-8 shadow-md transition-transform duration-300 hover:-translate-y-2 hover:shadow-2xl">
+                    <h2 className="text-3xl font-bold text-center mb-6">Login Please</h2>
+
+                    {error && (
+                        <div className="alert alert-error mb-4">
+                            <span>{error}</span>
+                        </div>
+                    )}
+
+                    <form onSubmit={handleSubmit} className="space-y-6">
                         <div>
-                            <label htmlFor='email' className='block mb-2 text-sm'>
-                                Email address
-                            </label>
+                            <label className="label" htmlFor="email"><span className="label-text">Email Address</span></label>
                             <input
-                                type='email'
-                                name='email'
-                                id='email'
+                                id="email"
+                                type="email"
+                                placeholder="Enter your email"
+                                className="input input-bordered w-full"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
                                 required
-                                placeholder='Enter Your Email Here'
-                                className='w-full px-3 py-2 border rounded-md border-gray-300 focus:outline-lime-500 bg-gray-200 text-gray-900'
-                                data-temp-mail-org='0'
                             />
                         </div>
+
                         <div>
-                            <div className='flex justify-between'>
-                                <label htmlFor='password' className='text-sm mb-2'>
-                                    Password
-                                </label>
+                            <label className="label" htmlFor="password"><span className="label-text">Password</span></label>
+                            <div className="relative">
+                                <input
+                                    id="password"
+                                    type={showPassword ? "text" : "password"}
+                                    placeholder="Enter your password"
+                                    className="input input-bordered w-full pr-10"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    required
+                                />
+                                <button
+                                    type="button"
+                                    className="absolute top-1/2 right-3 transform -translate-y-1/2"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                >
+                                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                </button>
                             </div>
-                            <input
-                                type='password'
-                                name='password'
-                                autoComplete='current-password'
-                                id='password'
-                                required
-                                placeholder='*******'
-                                className='w-full px-3 py-2 border rounded-md border-gray-300 focus:outline-lime-500 bg-gray-200 text-gray-900'
-                            />
                         </div>
-                    </div>
 
-                    <div>
-                        <button
-                            type='submit'
-                            className='bg-lime-500 w-full rounded-md py-3 text-white'
-                        >
-                            {loading ? (
-                                <TbFidgetSpinner className='animate-spin m-auto' />
-                            ) : (
-                                'Continue'
-                            )}
+                        <div className="flex items-center justify-between text-sm">
+                            <label className="flex items-center gap-2">
+                                <input type="checkbox" className="checkbox checkbox-sm" />
+                                <span>Remember me</span>
+                            </label>
+                            <Link to="/forgot-password" state={{ email }} className="link link-hover text-primary">
+                                Forgot password?
+                            </Link>
+                        </div>
+
+                        <button type="submit" className="btn btn-primary w-full" disabled={loading}>
+                            {loading ? "Logging in..." : "Login"}
                         </button>
-                    </div>
-                </form>
-                <div className='space-y-1'>
-                    <button className='text-xs hover:underline hover:text-lime-500 text-gray-400'>
-                        Forgot password?
-                    </button>
-                </div>
-                <div className='flex items-center pt-4 space-x-1'>
-                    <div className='flex-1 h-px sm:w-16 dark:bg-gray-700'></div>
-                    <p className='px-3 text-sm dark:text-gray-400'>
-                        Login with social accounts
-                    </p>
-                    <div className='flex-1 h-px sm:w-16 dark:bg-gray-700'></div>
-                </div>
-                <div
-                    onClick={handleGoogleSignIn}
-                    className='flex justify-center items-center space-x-2 border m-3 p-2 border-gray-300 border-rounded cursor-pointer'
-                >
-                    <FcGoogle size={32} />
+                    </form>
 
-                    <p>Continue with Google</p>
-                </div>
-                <p className='px-6 text-sm text-center text-gray-400'>
-                    Don&apos;t have an account yet?{' '}
-                    <Link
-                        to='/signup'
-                        className='hover:underline hover:text-lime-500 text-gray-600'
+                    <div className="divider my-6">OR</div>
+
+                    <button
+                        onClick={handleGoogleLogin}
+                        className="btn btn-outline w-full gap-2"
+                        disabled={loading}
                     >
-                        Sign up
-                    </Link>
-                    .
-                </p>
-            </div>
-        </div>
-    )
-}
+                        <img
+                            src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+                            alt="Google"
+                            className="w-5 h-5"
+                        />
+                        Continue with Google
+                    </button>
 
-export default Login
+                    <p className="mt-6 text-center text-sm">
+                        Don't have an account?{" "}
+                        <Link to="/signup" className="link link-neutral font-bold">
+                            Register now
+                        </Link>
+                    </p>
+                </div>
+            </div>
+        </>
+    );
+};
+
+export default Login;
