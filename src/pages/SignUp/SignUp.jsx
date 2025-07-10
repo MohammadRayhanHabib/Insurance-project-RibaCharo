@@ -52,7 +52,7 @@ const SignUp = () => {
         setLoading(true);
         try {
 
-            const { imgUrl } = await saveImgCloud(image)
+            const imgUrl = await saveImgCloud(image)
             // setPhotoURL(imgUrl)
             // console.log(photoURL);
 
