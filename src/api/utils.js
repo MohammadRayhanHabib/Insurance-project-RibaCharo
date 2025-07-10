@@ -1,18 +1,4 @@
-// import axios from "axios"
 
-// export const saveImgCloud = async (image) => {
-
-//     const data = new FormData()
-
-//     data.append('file', image)
-//     data.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
-//     data.append('cloud_name', `${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}`)
-
-//     const { data: result } = await axios.post(`https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`, data)
-//     const imgUrl = result?.url
-//     return imgUrl;
-
-// }
 
 import axios from "axios";
 
