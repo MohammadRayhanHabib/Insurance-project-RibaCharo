@@ -20,7 +20,7 @@ export default function ProfileComponent() {
     const [name, setName] = useState(initialName);
     const [photo, setPhoto] = useState(initialPhoto);
     const [imagePreview, setImagePreview] = useState(initialPhoto);
-    const [loader, setLoader] = useState()
+    const [loader, setLoader] = useState(true)
 
     const handleImageChange = async (e) => {
         const file = e.target.files[0];
