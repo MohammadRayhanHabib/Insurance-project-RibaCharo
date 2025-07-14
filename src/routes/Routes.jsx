@@ -7,6 +7,7 @@ import PrivateRoute from './PrivateRoute'
 import DashboardLayout from '../layouts/DashboardLayout'
 import MainLayout from '../layouts/MainLayout'
 import ProfileComponent from '../components/Profile/Profile'
+import AllPolicies from '../pages/AllPolicies/AllPolicies'
 
 export const router = createBrowserRouter([
     {
@@ -23,6 +24,10 @@ export const router = createBrowserRouter([
                 element: <PrivateRoute>
                     <ProfileComponent></ProfileComponent>
                 </PrivateRoute>
+            },
+            {
+                path: 'policies',
+                element: <AllPolicies></AllPolicies>
             }
         ],
     },

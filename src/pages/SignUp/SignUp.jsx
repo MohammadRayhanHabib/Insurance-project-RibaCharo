@@ -5,6 +5,8 @@ import { Eye, EyeOff, AlertCircle } from "lucide-react";
 import Swal from "sweetalert2";
 import useAuth from "../../hooks/useAuth";
 import { saveImgCloud } from "../../api/utils";
+import { axiosSecure } from "../../hooks/useAxiosSecure";
+import { saveUserInDb } from "../../hooks/useSaveUser";
 
 
 const SignUp = () => {
@@ -57,8 +59,22 @@ const SignUp = () => {
             // console.log(photoURL);
 
             await createUser(email, password, name);
+
+            const UserData = {
+                name: name,
+                email: email,
+                image: imgUrl
+
+            }
+            // console.log(UserData);
+
+            await saveUserInDb(UserData)
+
+
             await updateUserProfile(name, imgUrl)
             Swal.fire("Success", "Registration successful", "success");
+
+
             navigate("/");
         } catch (error) {
             setError(error.message || "Something went wrong. Try again.");

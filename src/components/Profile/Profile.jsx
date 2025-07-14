@@ -20,17 +20,26 @@ export default function ProfileComponent() {
     const [name, setName] = useState(initialName);
     const [photo, setPhoto] = useState(initialPhoto);
     const [imagePreview, setImagePreview] = useState(initialPhoto);
-    const [loader, setLoader] = useState(true)
+    const [loader, setLoader] = useState(false)
 
     const handleImageChange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
+        try {
 
-        const { imgUrl, isLoading } = await saveImgCloud(file)
-        setLoader(isLoading)
+            setLoader(true)
+            const imgUrl = await saveImgCloud(file)
+            setImagePreview(imgUrl);
+            setPhoto(imgUrl); // Optional: Upload logic
+        } catch (err) {
+            console.log(err);
 
-        setImagePreview(imgUrl);
-        setPhoto(imgUrl); // Optional: Upload logic
+        } finally {
+            setLoader(false)
+        }
+
+
+
 
     };
 
@@ -49,17 +58,19 @@ export default function ProfileComponent() {
                     {
                         loader ? (
 
+
+
                             <img
-                                src={imagePreview}
-                                alt="Profile"
-                                className="w-32 h-32 rounded-full object-cover border-4 border-indigo-500"
-                            />
-                        ) :
-                            <img
-                                src="https://media1.tenor.com/m/khzZ7-YSJW4AAAAC/cargando.gif"
+                                src="https://cdn.dribbble.com/userupload/21183802/file/original-80d7cf1f35a06cfd4d1226b6005026c1.gif"
                                 alt="Loading"
                                 className="w-32 h-32 rounded-full object-cover border-4 border-indigo-500"
                             />
+                        ) : <img
+                            src={imagePreview}
+                            alt="Profile"
+                            className="w-32 h-32 rounded-full object-cover border-4 border-indigo-500"
+                        />
+
                     }
                     {editMode && (
                         <input

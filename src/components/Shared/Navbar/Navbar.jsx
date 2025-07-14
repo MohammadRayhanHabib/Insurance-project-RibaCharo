@@ -1,12 +1,21 @@
 import { Link, NavLink } from "react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FaBars, FaTimes } from "react-icons/fa";
 import useAuth from "../../../hooks/useAuth";
+import LoadingSpinner from "../Spinner/LoadingSpinner";
 
 
 const Navbar = () => {
     const [open, setOpen] = useState(false);
-    const { user, logOut } = useAuth(); // Assume this returns user info & logout function
+    const { user, logOut, loading } = useAuth(); // Assume this returns user info & logout function
+
+    // const [userPic, setUserPic] = useState()
+
+    // useEffect(() => {
+    //     setUserPic(user?.photoURL)
+    // }, [user])
+
+    // console.log(photo);
 
     const navLinks = [
         { name: "Home", path: "/" },
@@ -15,7 +24,7 @@ const Navbar = () => {
         { name: "FAQs", path: "/faqs" },
     ];
 
-
+    if (loading) return <LoadingSpinner></LoadingSpinner>
     return (
         <nav className="bg-white shadow-md sticky top-0 z-50">
             <div className="max-w-[1660px] mx-auto px-4 py-3 flex justify-between items-center">
@@ -49,20 +58,20 @@ const Navbar = () => {
                                 Dashboard
                             </NavLink>
 
-                            <div class="tooltip tooltip-bottom">
-                                <div class="tooltip-content">
-                                    <div class="animate-bounce text-orange-400  text-sm font-black"><span>{user?.displayName?.split(" ")[0]}</span></div>
+                            <div className="tooltip tooltip-bottom">
+                                <div className="tooltip-content">
+                                    <div className="animate-bounce text-orange-400  text-sm font-black"><span>{user?.displayName?.split(" ")[0]}</span></div>
                                 </div>
                                 <NavLink
                                     to={'profile'}
                                     className="tooltip tooltip-bottom flex items-center space-x-2 text-gray-700 hover:text-blue-600"
                                 >
                                     <img
-                                        src={user.photoURL || "/default-avatar.png"}
+                                        src={user?.photoURL}
                                         alt="avatar"
                                         className="w-8 h-8 rounded-full object-cover"
                                     />
-                                    {/* <span>{user.displayName?.split(" ")[0]}</span> */}
+
                                 </NavLink>
                             </div>
 

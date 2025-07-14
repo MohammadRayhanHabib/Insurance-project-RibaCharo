@@ -4,6 +4,8 @@ import { Helmet } from "react-helmet";
 import { Eye, EyeOff } from "lucide-react";
 import Swal from "sweetalert2";
 import useAuth from "../../hooks/useAuth";
+import { saveUserInDb } from "../../hooks/useSaveUser";
+
 
 
 const Login = () => {
@@ -12,33 +14,34 @@ const Login = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState("");
 
-    // const authInfo = {
 
-    //     setUser,
-    //     loading,
-    //     setLoading,
-    //     createUser,
-    //     signIn,
-    //     signInWithGoogle,
-    //     logOut,
-    //     updateUserProfile,
-    // }
+
     const { signIn, signInWithGoogle, loading, setLoading } = useAuth();
     const navigate = useNavigate();
+
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError("");
 
         try {
-            await signIn(email, password);
+            const result = await signIn(email, password);
             Swal.fire({ title: "Login Successful!", icon: "success" });
             navigate("/");
+
+            const UserData = {
+                name: result?.user?.displayName,
+                email: result?.user?.email,
+                image: result?.user?.photoURL,
+
+            }
+
+            await saveUserInDb(UserData)
         } catch (err) {
             console.error("Login error:", err);
             setError("Invalid email or password.");
             Swal.fire({ title: "Login Failed!", icon: "error" });
-            setLoading(false); // ✅ Important: Reset loading if login failed
+            setLoading(false);
         }
     };
 
@@ -46,15 +49,24 @@ const Login = () => {
         setError("");
         try {
             setLoading(true);
-            await signInWithGoogle()
-            Swal.fire({ title: "Login Successful!", icon: "success" });
+            const result = await signInWithGoogle()
+            console.log(result?.lastLoginAt);
             navigate("/");
+            const UserData = {
+                name: result?.user?.displayName,
+                email: result?.user?.email,
+                image: result?.user?.photoURL,
+            }
+            await saveUserInDb(UserData)
+            Swal.fire({ title: "Login Successful!", icon: "success" });
+
         } catch (err) {
             console.error("Google login error:", err);
             setError("Google login failed.");
             Swal.fire({ icon: "error", title: "Oops...", text: "Google login failed!" });
             setLoading(false);
         }
+
     };
 
     return (
