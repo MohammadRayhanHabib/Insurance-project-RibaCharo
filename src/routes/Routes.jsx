@@ -10,6 +10,7 @@ import ProfileComponent from '../components/Profile/Profile'
 import AllPolicies from '../pages/AllPolicies/AllPolicies'
 import PolicyDetails from '../pages/AllPolicies/PolicyDetails'
 import QuotePage from '../pages/QuotePage/QuotePage'
+import ApplicationFormPage from '../pages/ApplicationFormm/ApplicationForm'
 
 export const router = createBrowserRouter([
     {
@@ -36,25 +37,34 @@ export const router = createBrowserRouter([
                 element: <PolicyDetails></PolicyDetails>
             },
             {
-                path: '/quote',
+                path: '/quote/:id',
                 element: <PrivateRoute>
                     <QuotePage></QuotePage>
                 </PrivateRoute>
-            }
+            }, {
+                path: '/apply/:id',
+                element: <PrivateRoute>
+                    <ApplicationFormPage></ApplicationFormPage>
+                </PrivateRoute>
+            },
+            {
+                path: '/dashboard',
+                element: (
+                    <PrivateRoute>
+                        <DashboardLayout />
+                    </PrivateRoute>
+                ),
+                children: [
+                    {
+                        path: ''
+                    }
+                ],
+            },
         ],
     },
+
 
     { path: '/login', Component: Login },
     { path: '/signup', element: <SignUp /> },
-    {
-        path: '/dashboard',
-        element: (
-            <PrivateRoute>
-                <DashboardLayout />
-            </PrivateRoute>
-        ),
-        children: [
 
-        ],
-    },
 ])

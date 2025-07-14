@@ -38,42 +38,74 @@ const PolicyDetails = () => {
                 {policy.title}
             </h1>
 
-            {/* Main Content */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Main Content Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
                 {/* Image Section */}
-                <div className="lg:col-span-1">
-                    <div className="relative rounded-2xl overflow-hidden shadow-xl">
-                        <img
-                            src={policy.image || 'https://via.placeholder.com/400x300?text=Policy+Image'}
-                            alt={policy.title}
-                            className="w-full h-96 object-cover transition-transform duration-500 hover:scale-105"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
-                    </div>
+                <div className="lg:col-span-1 rounded-2xl overflow-hidden shadow-xl">
+                    <img
+                        src={policy.image || 'https://via.placeholder.com/400x300?text=Policy+Image'}
+                        alt={policy.title}
+                        className="w-full h-96 object-cover transition-transform duration-500 hover:scale-105"
+                    />
                 </div>
 
                 {/* Details Section */}
                 <div className="lg:col-span-2 space-y-8">
-                    {/* Category and Description */}
-                    <div className="bg-white shadow-xl rounded-2xl p-6">
+                    {/* Category & Description */}
+                    <section className="bg-white shadow-xl rounded-2xl p-6">
                         <span className="inline-block px-3 py-1 text-xs font-medium text-white bg-green-600 rounded-full uppercase tracking-wide mb-4">
                             {policy.category}
                         </span>
-                        <p className="text-gray-600 text-base leading-relaxed">{policy.description}</p>
-                    </div>
+                        <p className="text-gray-700 text-base leading-relaxed">{policy.description}</p>
+                    </section>
 
-                    {/* Placeholder for Additional Info */}
-                    <div className="bg-white shadow-xl rounded-2xl p-6">
-                        <h2 className="text-2xl font-bold text-gray-900 mb-4">More Information</h2>
-                        <p className="text-gray-600 text-base leading-relaxed">
-                            For detailed eligibility criteria, benefits, premium calculations, and term options, please contact our team or book a consultation with one of our agents.
-                        </p>
-                    </div>
+                    {/* Eligibility */}
+                    <section className="bg-white shadow-xl rounded-2xl p-6">
+                        <h2 className="text-2xl font-bold mb-3 text-gray-900">Eligibility</h2>
+                        <p className="text-gray-700">{policy.eligibility}</p>
+                    </section>
 
-                    {/* CTAs */}
-                    <div className="flex flex-col sm:flex-row gap-4">
+                    {/* Coverage & Duration */}
+                    <section className="bg-white shadow-xl rounded-2xl p-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div>
+                            <h3 className="font-semibold text-gray-900 mb-1">Age Range</h3>
+                            <p className="text-gray-700">{policy.minAge} to {policy.maxAge} years</p>
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-gray-900 mb-1">Coverage Range</h3>
+                            <p className="text-gray-700">{policy.coverageRange}</p>
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-gray-900 mb-1">Duration Options (Years)</h3>
+                            <p className="text-gray-700">{policy.durationOptions?.join(', ')}</p>
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-gray-900 mb-1">Base Premium Rate</h3>
+                            <p className="text-gray-700">{policy.basePremiumRate}</p>
+                        </div>
+                    </section>
+
+                    {/* Benefits */}
+                    <section className="bg-white shadow-xl rounded-2xl p-6">
+                        <h2 className="text-2xl font-bold mb-3 text-gray-900">Benefits</h2>
+                        <ul className="list-disc list-inside text-gray-700 space-y-1">
+                            {policy.benefits?.map((benefit, idx) => (
+                                <li key={idx}>{benefit}</li>
+                            ))}
+                        </ul>
+                    </section>
+
+                    {/* Premium Calculation Note */}
+                    <section className="bg-white shadow-xl rounded-2xl p-6">
+                        <h2 className="text-2xl font-bold mb-3 text-gray-900">Premium Calculation</h2>
+                        <p className="text-gray-700">{policy.premiumLogicNote}</p>
+                    </section>
+
+                    {/* CTA Buttons */}
+                    <div className="flex flex-col sm:flex-row gap-4 mt-4">
                         <Link
-                            to={`/quote`}
+                            to={`/quote/${policy._id}`}
+
                             aria-label={`Get a quote for ${policy.title}`}
                             className="w-full sm:w-auto text-center px-6 py-3 text-base font-semibold text-white bg-gradient-to-r from-green-600 to-teal-500 rounded-lg hover:from-green-700 hover:to-teal-600 transition-all duration-300 shadow-md hover:shadow-lg"
                         >
