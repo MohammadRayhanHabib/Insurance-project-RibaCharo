@@ -8,6 +8,8 @@ import DashboardLayout from '../layouts/DashboardLayout'
 import MainLayout from '../layouts/MainLayout'
 import ProfileComponent from '../components/Profile/Profile'
 import AllPolicies from '../pages/AllPolicies/AllPolicies'
+import PolicyDetails from '../pages/AllPolicies/PolicyDetails'
+import QuotePage from '../pages/QuotePage/QuotePage'
 
 export const router = createBrowserRouter([
     {
@@ -26,8 +28,18 @@ export const router = createBrowserRouter([
                 </PrivateRoute>
             },
             {
-                path: 'policies',
+                path: '/policies',
                 element: <AllPolicies></AllPolicies>
+            },
+            {
+                path: '/policyDetails/:id',
+                element: <PolicyDetails></PolicyDetails>
+            },
+            {
+                path: '/quote',
+                element: <PrivateRoute>
+                    <QuotePage></QuotePage>
+                </PrivateRoute>
             }
         ],
     },
