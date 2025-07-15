@@ -1,18 +1,17 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-
 import { Helmet } from 'react-helmet';
-import { Loader2 } from 'lucide-react';
-import Swal from 'sweetalert2';
+import { Loader2, UserRound, MessageCircleMore, X } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { Dialog } from '@headlessui/react';
 import { axiosSecure } from '../../hooks/useAxiosSecure';
-
+import { MessageCircle } from 'lucide-react'; // Optional icon
+import LoadingSpinner from '../../components/Shared/Spinner/LoadingSpinner';
 const ManageApplications = () => {
     const queryClient = useQueryClient();
+    const [selectedApp, setSelectedApp] = useState(null);
     const [selectedAgent, setSelectedAgent] = useState('');
-    const [selectedAppId, setSelectedAppId] = useState(null);
 
-    // Fetch applications
     const { data: applications = [], isLoading, error } = useQuery({
         queryKey: ['applications'],
         queryFn: async () => {
@@ -21,7 +20,6 @@ const ManageApplications = () => {
         },
     });
 
-    // Fetch agents for dropdown
     const { data: agents = [] } = useQuery({
         queryKey: ['agents'],
         queryFn: async () => {
@@ -30,7 +28,6 @@ const ManageApplications = () => {
         },
     });
 
-    // Mutation for updating application status or agent assignment
     const updateApplication = useMutation({
         mutationFn: async ({ id, updates }) => {
             const res = await axiosSecure.patch(`/applications/${id}`, updates);
@@ -38,82 +35,25 @@ const ManageApplications = () => {
         },
         onSuccess: () => {
             queryClient.invalidateQueries(['applications']);
-            Swal.fire({
-                title: 'Success!',
-                text: 'Application updated successfully.',
-                icon: 'success',
-                confirmButtonColor: '#10B981',
-                confirmButtonText: 'OK',
-            });
-        },
-        onError: (error) => {
-            Swal.fire({
-                title: 'Error!',
-                text: error.message || 'Failed to update application.',
-                icon: 'error',
-                confirmButtonColor: '#EF4444',
-                confirmButtonText: 'OK',
-            });
+            setSelectedApp(null);
         },
     });
 
-    const handleAssignAgent = (id) => {
-        if (!selectedAgent) {
-            Swal.fire({
-                title: 'Warning!',
-                text: 'Please select an agent.',
-                icon: 'warning',
-                confirmButtonColor: '#F59E0B',
-                confirmButtonText: 'OK',
-            });
-            return;
-        }
-        updateApplication.mutate({ id, updates: { agentId: selectedAgent, status: 'Assigned' } });
-        setSelectedAppId(null);
+    const handleAssignAgent = () => {
+        if (!selectedApp || !selectedAgent) return;
+        updateApplication.mutate({ id: selectedApp._id, updates: { agentId: selectedAgent, status: 'Assigned' } });
     };
 
-    const handleReject = (id) => {
-        Swal.fire({
-            title: 'Are you sure?',
-            text: 'This will reject the application.',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#EF4444',
-            cancelButtonColor: '#D1D5DB',
-            confirmButtonText: 'Yes, reject it!',
-        }).then((result) => {
-            if (result.isConfirmed) {
-                updateApplication.mutate({ id, updates: { status: 'Rejected' } });
-            }
-        });
+    const handleReject = () => {
+        if (!selectedApp) return;
+        updateApplication.mutate({ id: selectedApp._id, updates: { status: 'Rejected' } });
     };
 
-    const handleViewDetails = (application) => {
-        Swal.fire({
-            title: `${application.personal.name}'s Application`,
-            html: `
-        <div className="text-left">
-          <p><strong>Email:</strong> ${application.personal.email}</p>
-          <p><strong>Address:</strong> ${application.personal.address}</p>
-          <p><strong>NID:</strong> ${application.personal.nid}</p>
-          <p><strong>Nominee:</strong> ${application.nominee.name} (${application.nominee.relationship})</p>
-          <p><strong>Health Disclosure:</strong> ${application.healthDisclosure.join(', ') || 'None'}</p>
-          <img src="${application.personal.userImg}" alt="${application.personal.name}'s photo" className="w-32 h-32 object-cover rounded-lg mt-2" />
-        </div>
-      `,
-            icon: 'info',
-            confirmButtonColor: '#10B981',
-            confirmButtonText: 'Close',
-        });
-    };
+    // if (isLoading) {
+    //     return <LoadingSpinner>
 
-    if (isLoading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-white">
-                <Loader2 className="w-12 h-12 text-green-600 animate-spin" />
-            </div>
-        );
-    }
+    //     </LoadingSpinner>
+    // }
 
     if (error) {
         return (
@@ -137,108 +77,131 @@ const ManageApplications = () => {
                 <h1 className="text-4xl font-extrabold bg-gradient-to-r from-green-600 to-teal-500 bg-clip-text text-transparent mb-6">
                     Manage Applications
                 </h1>
-                <div className="overflow-x-auto">
+
+                <div className="overflow-x-auto hidden md:block">
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 md:px-6">Applicant Name</th>
-                                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 md:px-6">Email</th>
-                                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 md:px-6">Policy Name</th>
-                                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 md:px-6">Application Date</th>
-                                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 md:px-6">Status</th>
-                                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 md:px-6">Actions</th>
+                                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Applicant</th>
+                                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Email</th>
+                                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Policy</th>
+                                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Date</th>
+                                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Status</th>
+                                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                             {applications.map((app) => (
-                                <tr key={app._id} className="hover:bg-gray-50 transition-colors">
-                                    <td className="px-4 py-4 whitespace-nowrap md:px-6">
+                                <tr key={app._id} className="hover:bg-gray-50">
+                                    <td className="px-4 py-4">
                                         <div className="flex items-center">
-                                            <img
-                                                src={app.personal.userImg}
-                                                alt={`${app.personal.name}'s photo`}
-                                                className="w-10 h-10 rounded-full mr-2 object-cover"
-                                            />
+                                            <img src={app.personal.userImg} alt={app.personal.name} className="w-10 h-10 rounded-full mr-2" />
                                             {app.personal.name}
                                         </div>
                                     </td>
-                                    <td className="px-4 py-4 whitespace-nowrap md:px-6">{app.personal.email}</td>
-                                    <td className="px-4 py-4 whitespace-nowrap md:px-6">{app.policyTitle}</td>
-                                    <td className="px-4 py-4 whitespace-nowrap md:px-6">
-                                        {new Date(app.createdAt).toLocaleDateString()}
+                                    <td className="px-4 py-4">{app.personal.email}</td>
+                                    <td className="px-4 py-4">{app.policyTitle}</td>
+                                    <td className="px-4 py-4">{new Date(app.createdAt).toLocaleDateString()}</td>
+                                    <td className="px-4 py-4">
+                                        <span className={`px-2 py-1 rounded-full text-sm ${app.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' : app.status === 'Approved' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{app.status}</span>
                                     </td>
-                                    <td className="px-4 py-4 whitespace-nowrap md:px-6">
-                                        <span
-                                            className={`px-2 py-1 rounded-full text-sm ${app.status === 'Pending'
-                                                ? 'bg-yellow-100 text-yellow-800'
-                                                : app.status === 'Approved'
-                                                    ? 'bg-green-100 text-green-800'
-                                                    : 'bg-red-100 text-red-800'
-                                                }`}
+                                    <td className="px-4 py-4">
+                                        <motion.button
+                                            onClick={() => setSelectedApp(app)}
+                                            className="px-3 py-1 bg-blue-600 text-white rounded-xl hover:bg-blue-700"
                                         >
-                                            {app.status}
-                                        </span>
-                                    </td>
-                                    <td className="px-4 py-4 whitespace-nowrap md:px-6">
-                                        <div className="flex flex-col sm:flex-row sm:space-x-2 space-y-2 sm:space-y-0">
-                                            <motion.button
-                                                onClick={() => {
-                                                    setSelectedAppId(app._id);
-                                                    setSelectedAgent(app.agentId || '');
-                                                }}
-                                                className="w-full sm:w-auto px-3 py-1 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors"
-                                                whileHover={{ scale: 1.05 }}
-                                                whileTap={{ scale: 0.95 }}
-                                            >
-                                                Assign Agent
-                                            </motion.button>
-                                            {selectedAppId === app._id && (
-                                                <select
-                                                    value={selectedAgent}
-                                                    onChange={(e) => setSelectedAgent(e.target.value)}
-                                                    className="w-full sm:w-auto p-1 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
-                                                >
-                                                    <option value="">Select Agent</option>
-                                                    {agents.map((agent) => (
-                                                        <option key={agent._id} value={agent._id}>
-                                                            {agent.name}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            )}
-                                            {selectedAppId === app._id && (
-                                                <motion.button
-                                                    onClick={() => handleAssignAgent(app._id)}
-                                                    className="w-full sm:w-auto px-3 py-1 bg-teal-600 text-white rounded-xl hover:bg-teal-700 transition-colors"
-                                                    whileHover={{ scale: 1.05 }}
-                                                    whileTap={{ scale: 0.95 }}
-                                                >
-                                                    Confirm
-                                                </motion.button>
-                                            )}
-                                            <motion.button
-                                                onClick={() => handleReject(app._id)}
-                                                className="w-full sm:w-auto px-3 py-1 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors"
-                                                whileHover={{ scale: 1.05 }}
-                                                whileTap={{ scale: 0.95 }}
-                                            >
-                                                Reject
-                                            </motion.button>
-                                            <motion.button
-                                                onClick={() => handleViewDetails(app)}
-                                                className="w-full sm:w-auto px-3 py-1 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
-                                                whileHover={{ scale: 1.05 }}
-                                                whileTap={{ scale: 0.95 }}
-                                            >
-                                                View Details
-                                            </motion.button>
-                                        </div>
+                                            View Details
+                                        </motion.button>
                                     </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
                 </div>
+
+                {/* Mobile icon list */}
+                <div className="md:hidden flex flex-wrap gap-3">
+                    {applications.map(app => (
+                        <motion.button
+                            key={app._id}
+                            onClick={() => setSelectedApp(app)}
+                            whileHover={{ scale: 1.03 }}
+                            whileTap={{ scale: 0.97 }}
+                            className="w-full text-left px-4 py-3 bg-white rounded-2xl shadow-md hover:shadow-lg border border-gray-100 transition-all flex items-center gap-4"
+                        >
+                            {/* Avatar with green ring */}
+                            <div className="relative w-14 h-14 rounded-full">
+                                <img
+                                    src={app?.personal?.userImg}
+                                    alt={app?.personal?.name}
+                                    className="w-full h-full object-cover rounded-full border-2 border-green-500"
+                                />
+                                <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full" />
+                            </div>
+
+                            {/* Info */}
+                            <div className="flex-1">
+                                <p className="text-sm font-semibold text-gray-800">
+                                    {app?.personal?.name}
+                                    <span className="text-xs text-gray-500 ml-1">sent an application</span>
+                                </p>
+                                <p className="text-xs text-gray-500 truncate">{app?.personal?.email}</p>
+                            </div>
+
+                            {/* Optional Status Badge */}
+                            <span
+                                className={`text-xs px-2 py-1 rounded-full font-medium ${app.status === 'Pending'
+                                    ? 'bg-yellow-100 text-yellow-700'
+                                    : app.status === 'Approved'
+                                        ? 'bg-green-100 text-green-700'
+                                        : 'bg-red-100 text-red-700'
+                                    }`}
+                            >
+                                {app.status}
+                            </span>
+                        </motion.button>
+                    ))}
+                </div>
+
+                {/* Modal */}
+                <Dialog open={!!selectedApp} onClose={() => setSelectedApp(null)} className="fixed z-50 inset-0 overflow-y-auto">
+                    <div className="flex items-center justify-center min-h-screen px-4">
+                        <Dialog.Panel className="bg-white w-full max-w-lg p-6 rounded-2xl shadow-xl">
+                            <div className="flex justify-between items-center mb-4">
+                                <Dialog.Title className="text-2xl font-bold text-gray-800">
+                                    {selectedApp?.personal.name}'s Application
+                                </Dialog.Title>
+                                <button onClick={() => setSelectedApp(null)}><X className="text-gray-500" /></button>
+                            </div>
+
+                            <div className="space-y-2">
+                                <p><strong>Email:</strong> {selectedApp?.personal.email}</p>
+                                <p><strong>Address:</strong> {selectedApp?.personal.address}</p>
+                                <p><strong>NID:</strong> {selectedApp?.personal.nid}</p>
+                                <p><strong>Nominee:</strong> {selectedApp?.nominee.name} ({selectedApp?.nominee.relationship})</p>
+                                <p><strong>Health Disclosure:</strong> {selectedApp?.healthDisclosure?.join(', ') || 'None'}</p>
+                                <p><strong>Policy:</strong> {selectedApp?.policyTitle}</p>
+                                <img src={selectedApp?.policyImg} alt="Policy" className="rounded-xl h-32 object-cover mt-2" />
+
+                                <select
+                                    value={selectedAgent}
+                                    onChange={(e) => setSelectedAgent(e.target.value)}
+                                    className="w-full border mt-4 px-2 py-1 rounded-xl"
+                                >
+                                    <option value=''>Select Agent</option>
+                                    {agents.map(agent => (
+                                        <option key={agent._id} value={agent._id}>{agent.name}</option>
+                                    ))}
+                                </select>
+
+                                <div className="flex gap-3 mt-4">
+                                    <button onClick={handleAssignAgent} className="px-4 py-2 bg-green-600 text-white rounded-xl">Assign</button>
+                                    <button onClick={handleReject} className="px-4 py-2 bg-red-600 text-white rounded-xl">Reject</button>
+                                </div>
+                            </div>
+                        </Dialog.Panel>
+                    </div>
+                </Dialog>
             </motion.div>
         </>
     );

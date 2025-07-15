@@ -13,6 +13,7 @@ import QuotePage from '../pages/QuotePage/QuotePage'
 import ApplicationFormPage from '../pages/ApplicationFormm/ApplicationForm'
 import AdminRoute from './AdminRoute'
 import ManageApplications from '../pages/AdminPage/ManageApplications'
+import ManageUsers from '../pages/AdminPage/ManageUsers'
 
 export const router = createBrowserRouter([
     {
@@ -55,8 +56,13 @@ export const router = createBrowserRouter([
                 children: [
                     // { path: 'profile', element: <ProfilePage /> },
                     //admin routes
-                    { path: 'manage-applications', element: <AdminRoute><ManageApplications /></AdminRoute> },
-                    // { path: 'manage-users', element: <AdminRoute><ManageUsers /></AdminRoute> },
+                    {
+
+                        path: 'manage-applications',
+                        element: <AdminRoute><ManageApplications /></AdminRoute>
+                    },
+
+                    { path: 'manage-users', element: <AdminRoute><ManageUsers /></AdminRoute> },
                     // { path: 'manage-policies', element: <AdminRoute><ManagePolicies /></AdminRoute> },
                     // { path: 'manage-transactions', element: <AdminRoute><ManageTransactions /></AdminRoute> },
                     // Agent Routes

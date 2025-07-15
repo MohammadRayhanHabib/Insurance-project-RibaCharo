@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, NavLink } from 'react-router';
 import { FaBars, FaTimes } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -8,11 +8,17 @@ import LoadingSpinner from '../Spinner/LoadingSpinner';
 const Navbar = () => {
     const [open, setOpen] = useState(false);
     const { user, logOut, loading } = useAuth();
+    const [photoURL, setPhotoURL] = useState(null);
 
-    // Fallback image for missing photoURL
-    const fallbackImage = 'https://via.placeholder.com/32?text=User';
+    // Update photoURL immediately and handle async updates
+    useEffect(() => {
+        if (user) {
+            setPhotoURL(user?.photoURL); // Fallback if photoURL is null
+        } else {
+            setPhotoURL(null);
+        }
+    }, [user]);
 
-    // Navigation links
     const navLinks = [
         { name: 'Home', path: '/' },
         { name: 'All Policies', path: '/policies' },
@@ -20,14 +26,13 @@ const Navbar = () => {
         { name: 'FAQs', path: '/faqs' },
     ];
 
-    // Animation variants
     const mobileMenuVariants = {
         hidden: { opacity: 0, y: -20 },
         visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' } },
         exit: { opacity: 0, y: -20, transition: { duration: 0.2 } },
     };
 
-    if (loading) return <LoadingSpinner />;
+    // if (loading) return ;
 
     return (
         <nav className="bg-white shadow-2xl sticky top-0 z-50">
@@ -35,13 +40,13 @@ const Navbar = () => {
                 {/* Logo */}
                 <Link
                     to="/"
-                    className="text-3xl font-extrabold text-gray-800 bg-clip-text text-transparent bg-gradient-to-r from-green-600 to-teal-500"
+                    className="text-3xl font-extrabold text-gray-800 bg-clip-text text-transparent bg-gradient-to-r from-green-600 to-teal-500 hover:from-green-700 hover:to-teal-600 transition-all duration-300"
                 >
                     RibaCharo
                 </Link>
 
                 {/* Desktop Menu */}
-                <div className="hidden md:flex space-x-8 items-center">
+                <div className="hidden md:flex space-x-6 items-center">
                     {navLinks.map((link) => (
                         <NavLink
                             key={link.path}
@@ -49,7 +54,7 @@ const Navbar = () => {
                             className={({ isActive }) =>
                                 `text-base font-medium transition-colors duration-300 ${isActive
                                     ? 'text-teal-500 border-b-2 border-teal-500'
-                                    : 'text-gray-700 hover:text-teal-500'
+                                    : 'text-gray-700 hover:text-teal-500 hover:border-b-2 hover:border-teal-300'
                                 }`
                             }
                         >
@@ -57,35 +62,47 @@ const Navbar = () => {
                         </NavLink>
                     ))}
 
-                    {/* Conditional Links */}
                     {user ? (
                         <>
                             <NavLink
                                 to="/dashboard"
                                 className={({ isActive }) =>
-                                    `text-base font-medium transition-colors duration-300 ${isActive ? 'text-teal-500' : 'text-gray-700 hover:text-teal-500'
+                                    `text-base font-medium transition-colors duration-300 ${isActive
+                                        ? 'text-teal-500'
+                                        : 'text-gray-700 hover:text-teal-500'
                                     }`
                                 }
                             >
                                 Dashboard
                             </NavLink>
+
+                            {/* Profile Image with Tooltip */}
                             <div className="group relative">
                                 <NavLink to="/profile" className="flex items-center space-x-2">
+
                                     <motion.img
-                                        src={user?.photoURL || fallbackImage}
+                                        src={photoURL}
                                         alt={user?.displayName || 'User'}
-                                        className="w-10 h-10 rounded-full object-cover border-2 border-teal-500"
+                                        className="w-10 h-10 rounded-full object-cover border-2 border-teal-500 hover:border-teal-600 transition-all duration-200"
                                         whileHover={{ scale: 1.1 }}
                                         transition={{ duration: 0.2 }}
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
                                     />
                                 </NavLink>
-                                <div className="absolute hidden group-hover:block bg-gray-800 text-white text-sm font-medium px-3 py-1 rounded-lg -bottom-10 left-1/2 transform -translate-x-1/2">
+                                <motion.div
+                                    className="absolute hidden group-hover:block bg-gray-800 text-white text-sm font-medium px-3 py-1 rounded-lg -bottom-10 left-1/2 transform -translate-x-1/2"
+                                    initial={{ opacity: 0, y: -5 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.2 }}
+                                >
                                     {user?.displayName?.split(' ')[0] || 'User'}
-                                </div>
+                                </motion.div>
                             </div>
+
                             <motion.button
                                 onClick={logOut}
-                                className="bg-red-500 text-white px-4 py-2 rounded-xl font-medium hover:bg-red-600 transition-colors duration-300"
+                                className="bg-gradient-to-r from-red-500 to-rose-500 text-white px-4 py-2 rounded-xl font-medium hover:from-red-600 hover:to-rose-600 shadow-lg hover:shadow-xl transition-all duration-300"
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                             >
@@ -95,7 +112,7 @@ const Navbar = () => {
                     ) : (
                         <NavLink
                             to="/login"
-                            className="bg-gradient-to-r from-green-600 to-teal-500 text-white px-4 py-2 rounded-xl font-medium hover:from-green-700 hover:to-teal-600 transition-all duration-300"
+                            className="bg-gradient-to-r from-green-600 to-teal-500 text-white px-4 py-2 rounded-xl font-medium hover:from-green-700 hover:to-teal-600 shadow-lg hover:shadow-xl transition-all duration-300"
                         >
                             Login
                         </NavLink>
@@ -125,7 +142,9 @@ const Navbar = () => {
                                 key={link.path}
                                 to={link.path}
                                 className={({ isActive }) =>
-                                    `block py-3 text-base font-medium ${isActive ? 'text-teal-500' : 'text-gray-700 hover:text-teal-500'
+                                    `block py-3 text-base font-medium ${isActive
+                                        ? 'text-teal-500'
+                                        : 'text-gray-700 hover:text-teal-500'
                                     }`
                                 }
                                 onClick={() => setOpen(false)}
