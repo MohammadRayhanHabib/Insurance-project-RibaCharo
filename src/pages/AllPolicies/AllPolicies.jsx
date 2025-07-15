@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { axiosSecure } from '../../hooks/useAxiosSecure';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router';
+import LoadingSpinner from '../../components/Shared/Spinner/LoadingSpinner';
 
 const AllPolicies = () => {
     const [page, setPage] = useState(1);
@@ -31,20 +32,15 @@ const AllPolicies = () => {
 
     }, [category, search]);
 
-    // if (isLoading) {
-    //     return (
-    //         // <div className="flex items-center justify-center h-screen">
-    //         //     <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-green-600"></div>
-    //         //     <span className="ml-4 text-xl font-semibold text-gray-700">Loading policies...</span>
-    //         // </div>
-    //     );
-    // }
+    if (isLoading && data) {
+        return <LoadingSpinner></LoadingSpinner>
+    }
 
-    const categories = ['All', 'Family', 'Senior', 'Term', 'Education', 'Disability', 'Health'];
+    const categories = ['All', 'Family', 'Senior', 'Term', 'Education', 'Disability', 'Health', 'Pilgrimage'];
     const totalPages = Math.ceil((data?.total || 0) / limit);
 
     return (
-        <div className="max-w-7xl mx-auto px-4 py-12">
+        <div className="max-w-7xl mx-auto px-4 py-12 ">
             <h2 className="text-4xl md:text-5xl font-extrabold text-center mb-6 text-gray-800 bg-clip-text text-transparent bg-gradient-to-r from-green-600 to-teal-500">
                 All Life Insurance Policies
             </h2>

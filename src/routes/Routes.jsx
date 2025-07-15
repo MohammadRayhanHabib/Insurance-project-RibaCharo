@@ -11,6 +11,8 @@ import AllPolicies from '../pages/AllPolicies/AllPolicies'
 import PolicyDetails from '../pages/AllPolicies/PolicyDetails'
 import QuotePage from '../pages/QuotePage/QuotePage'
 import ApplicationFormPage from '../pages/ApplicationFormm/ApplicationForm'
+import AdminRoute from './AdminRoute'
+import ManageApplications from '../pages/AdminPage/ManageApplications'
 
 export const router = createBrowserRouter([
     {
@@ -48,18 +50,29 @@ export const router = createBrowserRouter([
                 </PrivateRoute>
             },
             {
-                path: '/dashboard',
-                element: (
-                    <PrivateRoute>
-                        <DashboardLayout />
-                    </PrivateRoute>
-                ),
+                path: 'dashboard',
+                element: <PrivateRoute><DashboardLayout /></PrivateRoute>,
                 children: [
-                    {
-                        path: ''
-                    }
+                    // { path: 'profile', element: <ProfilePage /> },
+                    //admin routes
+                    { path: 'manage-applications', element: <AdminRoute><ManageApplications /></AdminRoute> },
+                    // { path: 'manage-users', element: <AdminRoute><ManageUsers /></AdminRoute> },
+                    // { path: 'manage-policies', element: <AdminRoute><ManagePolicies /></AdminRoute> },
+                    // { path: 'manage-transactions', element: <AdminRoute><ManageTransactions /></AdminRoute> },
+                    // Agent Routes
+                    // { path: 'assigned-customers', element: <AgentRoute><AssignedCustomers /></AgentRoute> },
+                    // { path: 'manage-blogs', element: <AgentRoute><ManageBlogs /></AgentRoute> },
+                    // { path: 'policy-clearance', element: <AgentRoute><PolicyClearance /></AgentRoute> },
+                    // Customer routes
+
+                    // { path: 'my-policies', element: <CustomerRoute><MyPolicies /></CustomerRoute> },
+                    // { path: 'payment-status', element: <CustomerRoute><PaymentStatus /></CustomerRoute> },
+                    // { path: 'claim-request', element: <CustomerRoute><ClaimRequest /></CustomerRoute> },
+                    // { path: '', element: <Navigate to="profile" /> }, // Default route
                 ],
-            },
+            }
+
+
         ],
     },
 
