@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router'
+import { createBrowserRouter, Navigate } from 'react-router'
 import Home from '../pages/Home/Home'
 import ErrorPage from '../pages/ErrorPage'
 import Login from '../pages/Login/Login'
@@ -14,6 +14,11 @@ import ApplicationFormPage from '../pages/ApplicationFormm/ApplicationForm'
 import AdminRoute from './AdminRoute'
 import ManageApplications from '../pages/AdminPage/ManageApplications'
 import ManageUsers from '../pages/AdminPage/ManageUsers'
+import DashboardHomeRedirect from '../components/DashboardHomeRedirect/DashboardHomeRedirect'
+import Blogs from '../pages/Blogs/Blogs'
+import MyPolicies from '../pages/CustomerPage/MyPolicies'
+import CustomerRoute from './CustomerRoute'
+import PaymentStatus from '../pages/CustomerPage/PaymentStatus'
 
 export const router = createBrowserRouter([
     {
@@ -24,6 +29,10 @@ export const router = createBrowserRouter([
             {
                 path: '/',
                 element: <Home />,
+            },
+            {
+                path: '/blogs',
+                element: <Blogs></Blogs>
             },
             {
                 path: '/profile',
@@ -50,6 +59,8 @@ export const router = createBrowserRouter([
                     <ApplicationFormPage></ApplicationFormPage>
                 </PrivateRoute>
             },
+            { path: '/login', Component: Login },
+            { path: '/signup', element: <SignUp /> },
             {
                 path: 'dashboard',
                 element: <PrivateRoute><DashboardLayout /></PrivateRoute>,
@@ -57,7 +68,11 @@ export const router = createBrowserRouter([
                     // { path: 'profile', element: <ProfilePage /> },
                     //admin routes
                     {
-
+                        index: true,
+                        element: <DashboardHomeRedirect />,
+                    },
+                    {
+                        index: true,
                         path: 'manage-applications',
                         element: <AdminRoute><ManageApplications /></AdminRoute>
                     },
@@ -71,8 +86,8 @@ export const router = createBrowserRouter([
                     // { path: 'policy-clearance', element: <AgentRoute><PolicyClearance /></AgentRoute> },
                     // Customer routes
 
-                    // { path: 'my-policies', element: <CustomerRoute><MyPolicies /></CustomerRoute> },
-                    // { path: 'payment-status', element: <CustomerRoute><PaymentStatus /></CustomerRoute> },
+                    { path: 'my-policies', element: <CustomerRoute><MyPolicies /></CustomerRoute> },
+                    { path: 'payment-status', element: <CustomerRoute><PaymentStatus /></CustomerRoute> },
                     // { path: 'claim-request', element: <CustomerRoute><ClaimRequest /></CustomerRoute> },
                     // { path: '', element: <Navigate to="profile" /> }, // Default route
                 ],
@@ -83,7 +98,6 @@ export const router = createBrowserRouter([
     },
 
 
-    { path: '/login', Component: Login },
-    { path: '/signup', element: <SignUp /> },
+
 
 ])

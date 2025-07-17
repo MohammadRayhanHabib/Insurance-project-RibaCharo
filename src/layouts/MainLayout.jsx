@@ -10,13 +10,13 @@ const MainLayout = () => {
         <div className='bg-white'>
             <Navbar />
             <div className=' min-h-screen'>
-                <main className="">
-                    {authLoading || navigation.state === 'loading' ? (
-                        <LoadingSpinner></LoadingSpinner>
-                    ) : (
-                        <Outlet />
-                    )}
-                </main>
+
+                {authLoading || navigation.state === 'loading' ? (
+                    <LoadingSpinner></LoadingSpinner>
+                ) : (
+                    <Outlet />
+                )}
+
             </div>
             <Footer />
         </div>

@@ -16,7 +16,7 @@ const DashboardLayout = () => {
     return (
         <div className="flex min-h-screen bg-gray-50">
             {/* Sidebar - Always visible on desktop, toggleable on mobile */}
-            <div></div>
+
             <div
                 className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-xl transform md:translate-x-0 md:relative md:w-64 lg:w-72 transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
             >

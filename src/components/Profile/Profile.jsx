@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { BadgeCheck, Pencil, Save } from "lucide-react";
+import { motion } from "framer-motion";
 import useAuth from "../../hooks/useAuth";
 import { saveImgCloud } from "../../api/utils";
 
@@ -12,7 +13,7 @@ const roleColors = {
 export default function ProfileComponent() {
     const { user, updateUserProfile } = useAuth();
 
-    // Initialize with user data and handle updates
+    // Initialize with user data and handle updates with fallbacks
     const [name, setName] = useState(user?.displayName || "No Name");
     const [photo, setPhoto] = useState(user?.photoURL || "/default-avatar.png");
     const [imagePreview, setImagePreview] = useState(user?.photoURL || "/default-avatar.png");
@@ -35,15 +36,19 @@ export default function ProfileComponent() {
             setImagePreview(imgUrl);
             setPhoto(imgUrl);
         } catch (err) {
-            console.log(err);
+            console.error("Image upload error:", err);
         } finally {
             setLoader(false);
         }
     };
 
     const handleSave = () => {
-        updateUserProfile(name, photo);
-        console.log("Saved:", { name, photo });
+        if (updateUserProfile) {
+            updateUserProfile(name, photo);
+            console.log("Saved:", { name, photo });
+        } else {
+            console.error("updateUserProfile function is not available");
+        }
         setEditMode(false);
     };
 
@@ -59,7 +64,7 @@ export default function ProfileComponent() {
                         />
                     ) : (
                         <motion.img
-                            src={imagePreview}
+                            src={imagePreview || "/default-avatar.png"}
                             alt="Profile"
                             className="w-32 h-32 rounded-full object-cover border-4 border-indigo-500 group-hover:border-teal-500 transition-all duration-300"
                             initial={{ opacity: 0 }}
@@ -81,16 +86,16 @@ export default function ProfileComponent() {
                 {editMode ? (
                     <input
                         className="mt-4 text-center text-xl font-semibold bg-transparent border-b border-gray-300 dark:border-gray-600 focus:outline-none focus:border-teal-500 transition-all duration-300"
-                        value={name}
+                        value={name || ""}
                         onChange={(e) => setName(e.target.value)}
                     />
                 ) : (
                     <h2 className="mt-4 text-2xl font-bold bg-gradient-to-r from-green-600 to-teal-500 bg-clip-text text-transparent hover:from-green-700 hover:to-teal-600 transition-all duration-300">
-                        {name}
+                        {name || "No Name"}
                     </h2>
                 )}
 
-                <p className="text-sm text-gray-500 dark:text-gray-400">{user?.email}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{user?.email || "No Email"}</p>
 
                 {user?.role && (
                     <div

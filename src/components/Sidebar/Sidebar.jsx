@@ -19,7 +19,7 @@ const Sidebar = ({ role, isOpen }) => {
     const location = useLocation();
 
     const commonLinks = [
-        { to: '/dashboard/profile', label: 'Profile', icon: <User size={20} /> },
+        { to: '/profile', label: 'Profile', icon: <User size={20} /> },
     ];
 
     const adminLinks = [

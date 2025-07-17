@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Helmet } from 'react-helmet';
+
 import { Loader2, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Dialog } from '@headlessui/react';
 import { axiosSecure } from '../../hooks/useAxiosSecure';
 import useRole from '../../hooks/useRole';
 import useAuth from '../../hooks/useAuth';
+import ReusableUserModal from '../../components/Modal/ReusableUserModal';
 
 const ManageUsers = () => {
     const queryClient = useQueryClient();
@@ -24,10 +26,9 @@ const ManageUsers = () => {
     });
 
     const updateUserRole = useMutation({
-        mutationFn: async ({ id, role }) => {
-            const res = await axiosSecure.patch(`/user/${id}`, {
+        mutationFn: async ({ email, role }) => {
+            const res = await axiosSecure.patch(`/user/role/update/${email}`, {
                 role,
-
             });
             return res.data;
         },
@@ -36,6 +37,7 @@ const ManageUsers = () => {
             setSelectedUser(null);
         },
     });
+
 
     const deleteUser = useMutation({
         mutationFn: async (id) => {
@@ -60,7 +62,7 @@ const ManageUsers = () => {
     return (
         <>
             <Helmet>
-                <title>NeoTakaful | Manage Users</title>
+                <title>Manage Users</title>
             </Helmet>
             <motion.div
                 className="max-w-7xl mx-auto p-6 bg-white rounded-3xl shadow-2xl"
@@ -188,7 +190,18 @@ const ManageUsers = () => {
 
 
                 {/* Modal */}
-                <Dialog open={!!selectedUser} onClose={() => setSelectedUser(null)} className="fixed z-50 inset-0 overflow-y-auto">
+
+                <ReusableUserModal
+                    isOpen={!!selectedUser}
+                    onClose={() => setSelectedUser(null)}
+                    user={selectedUser}
+                    onPromote={({ email }) => updateUserRole.mutate({ email, role: 'agent' })}
+                    onDemote={({ email }) => updateUserRole.mutate({ email, role: 'customer' })}
+                    onDelete={({ _id }) => deleteUser.mutate(_id)}
+                />
+
+
+                {/* <Dialog open={!!selectedUser} onClose={() => setSelectedUser(null)} className="fixed z-50 inset-0 overflow-y-auto">
                     <div className="flex items-center justify-center min-h-screen px-4">
                         <Dialog.Panel className="bg-green-50 w-full max-w-md p-6 rounded-2xl shadow-xl">
                             <div className="flex justify-between items-center mb-4">
@@ -213,19 +226,11 @@ const ManageUsers = () => {
                                 <p><strong>Current Role:</strong> {selectedUser?.role}</p>
                                 <p><strong>Registered:</strong> {new Date(selectedUser?.created_at).toLocaleDateString()}</p>
 
-                                {/* <div className="flex gap-3 mt-4 flex-wrap">
-                                    {selectedUser?.role !== 'agent' && (
-                                        <button onClick={() => updateUserRole.mutate({ id: selectedUser._id, role: 'agent' })} className="px-4 py-2 bg-green-600 text-white rounded-xl">Promote to Agent</button>
-                                    )}
-                                    {selectedUser?.role === 'agent' && (
-                                        <button onClick={() => updateUserRole.mutate({ id: selectedUser._id, role: 'customer' })} className="px-4 py-2 bg-yellow-500 text-white rounded-xl">Demote to Customer</button>
-                                    )}
-                                    <button onClick={() => deleteUser.mutate(selectedUser._id)} className="px-4 py-2 bg-red-600 text-white rounded-xl">Delete User</button>
-                                </div> */}
+
                                 <div className="flex gap-3 mt-4 flex-wrap">
                                     {selectedUser?.role !== 'agent' && (
                                         <motion.button
-                                            onClick={() => updateUserRole.mutate({ id: selectedUser._id, role: 'agent' })}
+                                            onClick={() => updateUserRole.mutate({ email: selectedUser?.email, role: 'agent' })}
                                             className="px-6 py-3 bg-gradient-to-r from-green-500 to-teal-500 text-white rounded-xl shadow-lg hover:shadow-xl hover:from-green-600 hover:to-teal-600 transition-all duration-300"
                                             whileHover={{ scale: 1.05, boxShadow: '0 10px 20px rgba(0, 128, 0, 0.3)' }}
                                             whileTap={{ scale: 0.95 }}
@@ -235,7 +240,7 @@ const ManageUsers = () => {
                                     )}
                                     {selectedUser?.role === 'agent' && (
                                         <motion.button
-                                            onClick={() => updateUserRole.mutate({ id: selectedUser._id, role: 'customer' })}
+                                            onClick={() => updateUserRole.mutate({ email: selectedUser?.email, role: 'customer' })}
                                             className="px-6 py-3 bg-gradient-to-r from-yellow-500 to-amber-500 text-white rounded-xl shadow-lg hover:shadow-xl hover:from-yellow-600 hover:to-amber-600 transition-all duration-300"
                                             whileHover={{ scale: 1.05, boxShadow: '0 10px 20px rgba(255, 193, 7, 0.3)' }}
                                             whileTap={{ scale: 0.95 }}
@@ -255,7 +260,7 @@ const ManageUsers = () => {
                             </div>
                         </Dialog.Panel>
                     </div>
-                </Dialog>
+                </Dialog> */}
             </motion.div >
         </>
     );
