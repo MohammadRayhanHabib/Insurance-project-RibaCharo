@@ -160,8 +160,8 @@ const ApplicationFormPage = () => {
                                 <input
                                     type="text"
                                     name="personal.name"
-                                    defaultValue={user?.displayName}
-                                    // value={user?.displayName}
+                                    // defaultValue={user?.displayName}
+                                    value={user?.displayName}
                                     onChange={handleChange}
                                     className="input-style"
                                     placeholder="Your full name"

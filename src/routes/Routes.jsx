@@ -12,13 +12,18 @@ import PolicyDetails from '../pages/AllPolicies/PolicyDetails'
 import QuotePage from '../pages/QuotePage/QuotePage'
 import ApplicationFormPage from '../pages/ApplicationFormm/ApplicationForm'
 import AdminRoute from './AdminRoute'
-import ManageApplications from '../pages/AdminPage/ManageApplications'
+
 import ManageUsers from '../pages/AdminPage/ManageUsers'
 import DashboardHomeRedirect from '../components/DashboardHomeRedirect/DashboardHomeRedirect'
 import Blogs from '../pages/Blogs/Blogs'
 import MyPolicies from '../pages/CustomerPage/MyPolicies'
 import CustomerRoute from './CustomerRoute'
 import PaymentStatus from '../pages/CustomerPage/PaymentStatus'
+import ManagePolicies from '../pages/AdminPage/ManagePolicies'
+import ManageApplications from '../pages/AdminPage/ManageApplications'
+import AssignedCustomers from '../pages/AgentPage/AssignedCustomers'
+import AgentRoute from './AgentRoute'
+
 
 export const router = createBrowserRouter([
     {
@@ -78,10 +83,10 @@ export const router = createBrowserRouter([
                     },
 
                     { path: 'manage-users', element: <AdminRoute><ManageUsers /></AdminRoute> },
-                    // { path: 'manage-policies', element: <AdminRoute><ManagePolicies /></AdminRoute> },
+                    { path: 'manage-policies', element: <AdminRoute><ManagePolicies /></AdminRoute> },
                     // { path: 'manage-transactions', element: <AdminRoute><ManageTransactions /></AdminRoute> },
                     // Agent Routes
-                    // { path: 'assigned-customers', element: <AgentRoute><AssignedCustomers /></AgentRoute> },
+                    { path: 'assigned-customers', element: <AgentRoute><AssignedCustomers /></AgentRoute> },
                     // { path: 'manage-blogs', element: <AgentRoute><ManageBlogs /></AgentRoute> },
                     // { path: 'policy-clearance', element: <AgentRoute><PolicyClearance /></AgentRoute> },
                     // Customer routes

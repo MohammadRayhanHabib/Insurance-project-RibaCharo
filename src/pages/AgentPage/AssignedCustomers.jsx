@@ -1,0 +1,297 @@
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Helmet } from 'react-helmet';
+import { Loader2, X } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Dialog } from '@headlessui/react';
+import useAuth from '../../hooks/useAuth';
+import { axiosSecure } from '../../hooks/useAxiosSecure';
+
+
+
+const AssignedCustomers = () => {
+    const queryClient = useQueryClient();
+    const { user } = useAuth(); // ⬅️ Get logged-in user
+    const [selectedCustomer, setSelectedCustomer] = useState(null);
+
+    const agentEmail = user?.email; // Use authenticated agent's email
+
+    const { data: assignedCustomers = [], isLoading, error } = useQuery({
+        queryKey: ['assignedCustomers', agentEmail],
+        queryFn: async () => {
+            if (!agentEmail) {
+                console.warn('No agent email found.');
+                return [];
+            }
+
+            const res = await axiosSecure.get(`/get-all-data-for-agents`);
+            return res.data || [];
+        },
+        enabled: !!agentEmail,
+    });
+
+    const updateAssignedCustomerStatus = useMutation({
+        mutationFn: async ({ assignmentId, newStatus, policyId }) => {
+            const res = await axiosSecure.patch(`/dataForAgents/${assignmentId}`, {
+                status: newStatus,
+                policyId,
+            });
+            return res.data;
+        },
+        onSuccess: (data, variables) => {
+            queryClient.invalidateQueries(['assignedCustomers', agentEmail]);
+
+            if (variables.newStatus === 'Approved' && variables.policyId) {
+                axiosSecure
+                    .patch(`/policies/${variables.policyId}`, { $inc: { purchaseCount: 1 } })
+                    .then(() => console.log(`Policy ${variables.policyId} purchase count updated.`))
+                    .catch((err) => console.error('Error updating policy count:', err.message));
+            }
+        },
+        onError: (err) => {
+            console.error('Status update failed:', err.message);
+        },
+    });
+
+    const handleStatusChange = (assignmentId, newStatus, policyId) => {
+        updateAssignedCustomerStatus.mutate({ assignmentId, newStatus, policyId });
+    };
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                <Loader2 className="h-10 w-10 animate-spin text-teal-500" />
+                <p className="text-gray-600 ml-3 text-lg">Loading assigned customers...</p>
+            </div>
+        );
+    }
+
+    if (error) {
+        return <p className="text-red-600 text-center">Error: {error.message}</p>;
+    }
+
+    return (
+        <>
+            <Helmet>
+                <title>NeoTakaful | Assigned Customers</title>
+            </Helmet>
+
+            <motion.div
+                className="max-w-7xl mx-auto p-4 sm:p-6 bg-white rounded-3xl shadow-2xl"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+            >
+                <h1 className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-blue-600 to-purple-500 bg-clip-text text-transparent mb-6">
+                    Assigned Customers
+                </h1>
+
+                {assignedCustomers.length === 0 ? (
+                    <p className="text-center text-gray-600 text-lg py-10">No customers assigned to you yet.</p>
+                ) : (
+                    <>
+                        {/* ✅ Desktop Table */}
+                        <div className="overflow-x-auto hidden md:block">
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="px-3 py-3 text-left text-sm font-semibold text-gray-700">Customer Name</th>
+                                        <th className="px-3 py-3 text-left text-sm font-semibold text-gray-700">Email</th>
+                                        <th className="px-3 py-3 text-left text-sm font-semibold text-gray-700">Policy</th>
+                                        <th className="px-3 py-3 text-left text-sm font-semibold text-gray-700">Status</th>
+                                        <th className="px-3 py-3 text-left text-sm font-semibold text-gray-700">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {assignedCustomers.map((customer) => (
+                                        <tr key={customer._id}>
+                                            <td className="px-3 py-4 text-sm">{customer.customerName}</td>
+                                            <td className="px-3 py-4 text-sm">{customer.customerEmail}</td>
+                                            <td className="px-3 py-4 text-sm">{customer.policyTitle}</td>
+                                            <td className="px-3 py-4">
+                                                <select
+                                                    value={customer.status}
+                                                    onChange={(e) =>
+                                                        handleStatusChange(customer._id, e.target.value, customer.policyId)
+                                                    }
+                                                    className={`px-2 py-1 border rounded-md text-sm ${customer.status === 'Pending'
+                                                        ? 'bg-yellow-100 text-yellow-800'
+                                                        : customer.status === 'Approved'
+                                                            ? 'bg-green-100 text-green-800'
+                                                            : 'bg-red-100 text-red-800'
+                                                        }`}
+                                                    disabled={updateAssignedCustomerStatus.isLoading}
+                                                >
+                                                    <option value="Pending">Pending</option>
+                                                    <option value="Approved">Approved</option>
+                                                    <option value="Rejected">Rejected</option>
+                                                </select>
+                                            </td>
+                                            <td className="px-3 py-4">
+                                                <motion.button
+                                                    onClick={() => setSelectedCustomer(customer)}
+                                                    className="px-2 py-1 rounded-md bg-blue-500 text-white text-sm hover:bg-blue-600"
+                                                    whileHover={{ scale: 1.05 }}
+                                                    whileTap={{ scale: 0.95 }}
+                                                >
+                                                    View Details
+                                                </motion.button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* ✅ Mobile View */}
+                        <div className="md:hidden flex flex-col gap-3">
+                            {assignedCustomers.map((customer) => (
+                                <motion.div
+                                    key={customer._id}
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={() => setSelectedCustomer(customer)}
+                                    className="p-4 bg-white shadow-md rounded-xl border"
+                                >
+                                    <div className="flex justify-between items-center">
+                                        <div>
+                                            <p className="text-lg font-semibold">{customer.customerName}</p>
+                                            <p className="text-sm text-gray-500">{customer.customerEmail}</p>
+                                            <p className="text-sm text-gray-500">Policy: {customer.policyTitle}</p>
+                                        </div>
+                                        <select
+                                            value={customer.status}
+                                            onChange={(e) =>
+                                                handleStatusChange(customer._id, e.target.value, customer.policyId)
+                                            }
+                                            onClick={(e) => e.stopPropagation()}
+                                            disabled={updateAssignedCustomerStatus.isLoading}
+                                            className={`text-xs rounded-full px-3 py-1 font-medium ${customer.status === 'Pending'
+                                                ? 'bg-yellow-100 text-yellow-800'
+                                                : customer.status === 'Approved'
+                                                    ? 'bg-green-100 text-green-800'
+                                                    : 'bg-red-100 text-red-800'
+                                                }`}
+                                        >
+                                            <option value="Pending">Pending</option>
+                                            <option value="Approved">Approved</option>
+                                            <option value="Rejected">Rejected</option>
+                                        </select>
+                                    </div>
+
+                                    <motion.button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedCustomer(customer);
+                                        }}
+                                        className="mt-3 px-4 py-2 rounded-md bg-blue-500 text-white text-sm hover:bg-blue-600"
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                    >
+                                        View Details
+                                    </motion.button>
+                                </motion.div>
+                            ))}
+                        </div>
+                    </>
+                )}
+
+                {/* ✅ Modal for Customer Details */}
+                {selectedCustomer && (
+                    <Dialog
+                        open={true}
+                        onClose={() => setSelectedCustomer(null)}
+                        className="fixed z-50 inset-0 overflow-y-auto bg-black/40 flex items-center justify-center p-4"
+                    >
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.3 }}
+                            className="bg-white w-full max-w-lg p-6 rounded-2xl shadow-xl relative"
+                        >
+                            <button
+                                onClick={() => setSelectedCustomer(null)}
+                                className="absolute top-4 right-4 text-gray-400 hover:text-red-500"
+                            >
+                                <X size={24} />
+                            </button>
+
+                            <Dialog.Title className="text-xl font-bold mb-4">
+                                {selectedCustomer.customerName}'s Details
+                            </Dialog.Title>
+
+                            <div className="space-y-3 text-sm text-gray-700">
+                                <p>
+                                    <strong>Email:</strong> {selectedCustomer.customerEmail}
+                                </p>
+                                <p>
+                                    <strong>Policy:</strong> {selectedCustomer.policyTitle}
+                                </p>
+                                <p>
+                                    <strong>Status:</strong>{' '}
+                                    <span
+                                        className={`px-3 py-1 text-sm rounded-full ${selectedCustomer.status === 'Pending'
+                                            ? 'bg-yellow-100 text-yellow-800'
+                                            : selectedCustomer.status === 'Approved'
+                                                ? 'bg-green-100 text-green-800'
+                                                : 'bg-red-100 text-red-800'
+                                            }`}
+                                    >
+                                        {selectedCustomer.status}
+                                    </span>
+                                </p>
+
+                                {selectedCustomer.personal && (
+                                    <>
+                                        <hr />
+                                        <p>
+                                            <strong>Address:</strong> {selectedCustomer.personal.address}
+                                        </p>
+                                        <p>
+                                            <strong>NID:</strong> {selectedCustomer.personal.nid}
+                                        </p>
+                                    </>
+                                )}
+
+                                {selectedCustomer.nominee && (
+                                    <>
+                                        <hr />
+                                        <p>
+                                            <strong>Nominee Name:</strong> {selectedCustomer.nominee.name}
+                                        </p>
+                                        <p>
+                                            <strong>Relationship:</strong> {selectedCustomer.nominee.relationship}
+                                        </p>
+                                    </>
+                                )}
+
+                                {selectedCustomer.healthDisclosure?.length > 0 && (
+                                    <>
+                                        <hr />
+                                        <p>
+                                            <strong>Health Issues:</strong>{' '}
+                                            {selectedCustomer.healthDisclosure.join(', ')}
+                                        </p>
+                                    </>
+                                )}
+
+                                {selectedCustomer.policyImg && (
+                                    <>
+                                        <hr />
+                                        <img
+                                            src={selectedCustomer.policyImg}
+                                            alt="Policy"
+                                            className="rounded-xl w-full h-40 object-cover mt-2"
+                                        />
+                                    </>
+                                )}
+                            </div>
+                        </motion.div>
+                    </Dialog>
+                )}
+            </motion.div>
+        </>
+    );
+};
+
+export default AssignedCustomers;

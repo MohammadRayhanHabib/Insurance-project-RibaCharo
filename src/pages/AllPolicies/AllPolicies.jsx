@@ -36,7 +36,7 @@ const AllPolicies = () => {
         return <LoadingSpinner></LoadingSpinner>
     }
 
-    const categories = ['All', 'Family', 'Senior', 'Term', 'Education', 'Disability', 'Health', 'Pilgrimage'];
+    const categories = ['All', 'Travel', 'Family', 'Senior', 'Term', 'Education', 'Disability', 'Health', 'Pilgrimage'];
     const totalPages = Math.ceil((data?.total || 0) / limit);
 
     return (

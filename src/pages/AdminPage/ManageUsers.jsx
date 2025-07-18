@@ -6,8 +6,7 @@ import { Loader2, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Dialog } from '@headlessui/react';
 import { axiosSecure } from '../../hooks/useAxiosSecure';
-import useRole from '../../hooks/useRole';
-import useAuth from '../../hooks/useAuth';
+
 import ReusableUserModal from '../../components/Modal/ReusableUserModal';
 
 const ManageUsers = () => {
