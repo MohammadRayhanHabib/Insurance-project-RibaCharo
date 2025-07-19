@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Outlet } from 'react-router';
-import { Loader2 } from 'lucide-react';
 import useRole from '../hooks/useRole';
 import Sidebar from '../components/Sidebar/Sidebar';
 import LoadingSpinner from '../components/Shared/Spinner/LoadingSpinner';
@@ -14,11 +13,11 @@ const DashboardLayout = () => {
     }
 
     return (
-        <div className="flex min-h-screen bg-gray-50">
-            {/* Sidebar - Always visible on desktop, toggleable on mobile */}
-
+        <div className="flex min-h-screen">
+            {/* Sidebar - Fixed on all screens, toggleable on mobile */}
             <div
-                className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-xl transform md:translate-x-0 md:relative md:w-64 lg:w-72 transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+                className={`fixed inset-y-0 left-0 z-50 mt-20 w-64 bg-white shadow-xl transform transition-transform duration-300 ease-in-out md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+                    } md:w-64 lg:w-72`}
             >
                 <Sidebar role={role} isOpen={isSidebarOpen} />
             </div>
@@ -31,8 +30,8 @@ const DashboardLayout = () => {
                 ></div>
             )}
 
-            {/* Main content area */}
-            <div className="flex-1 flex flex-col w-full">
+            {/* Main content area - Scrollable */}
+            <div className="flex-1 flex flex-col md:ml-64 lg:ml-72 w-full">
                 {/* Topbar for mobile toggle */}
                 <div className="md:hidden flex items-center justify-between bg-white px-4 py-3 shadow-md sticky top-0 z-30">
                     <button
@@ -57,8 +56,8 @@ const DashboardLayout = () => {
                     <h1 className="text-lg font-semibold text-gray-800">Dashboard</h1>
                 </div>
 
-                {/* Outlet content */}
-                <main className="p-4 md:p-6 lg:p-8 transition-all duration-300">
+                {/* Outlet content - Scrollable */}
+                <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
                     <Outlet />
                 </main>
             </div>

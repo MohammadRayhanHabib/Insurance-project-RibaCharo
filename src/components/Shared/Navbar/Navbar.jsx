@@ -4,6 +4,7 @@ import { FaBars, FaTimes } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import useAuth from '../../../hooks/useAuth';
 import LoadingSpinner from '../Spinner/LoadingSpinner';
+import SideLogo from '../../Sidebar/SideLogo';
 
 const Navbar = () => {
     const [open, setOpen] = useState(false);
@@ -39,13 +40,7 @@ const Navbar = () => {
         <nav className="bg-white shadow-2xl sticky top-0 z-50">
             <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
                 {/* Logo */}
-                <Link
-                    to="/"
-                    className="text-3xl font-extrabold text-gray-800 bg-clip-text text-transparent bg-gradient-to-r from-green-600 to-teal-500 hover:from-green-700 hover:to-teal-600 transition-all duration-300"
-                >
-                    RibaCharo
-                </Link>
-
+                <SideLogo></SideLogo>
                 {/* Desktop Menu */}
                 <div className="hidden md:flex space-x-6 items-center">
                     {navLinks.map((link) => (

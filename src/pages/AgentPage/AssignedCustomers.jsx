@@ -6,8 +6,7 @@ import { motion } from 'framer-motion';
 import { Dialog } from '@headlessui/react';
 import useAuth from '../../hooks/useAuth';
 import { axiosSecure } from '../../hooks/useAxiosSecure';
-
-
+import Swal from 'sweetalert2'; // Import SweetAlert2
 
 const AssignedCustomers = () => {
     const queryClient = useQueryClient();
@@ -24,7 +23,7 @@ const AssignedCustomers = () => {
                 return [];
             }
 
-            const res = await axiosSecure.get(`/get-all-data-for-agents`);
+            const res = await axiosSecure(`/get-all-data-for-agents/${user?.email}`);
             return res.data || [];
         },
         enabled: !!agentEmail,
@@ -32,14 +31,30 @@ const AssignedCustomers = () => {
 
     const updateAssignedCustomerStatus = useMutation({
         mutationFn: async ({ assignmentId, newStatus, policyId }) => {
-            const res = await axiosSecure.patch(`/dataForAgents/${assignmentId}`, {
-                status: newStatus,
-                policyId,
-            });
+            const updatePayload = { status: newStatus };
+
+            // Removed: Conditional logic to set paymentStatus: 'Due' here.
+            // paymentStatus is now expected to be set by default at application submission.
+
+            // Keep policyId in the payload if the backend uses it for dataForAgents document.
+            if (policyId) {
+                updatePayload.policyId = policyId;
+            }
+
+            const res = await axiosSecure.patch(`/dataForAgents/${assignmentId}`, updatePayload);
             return res.data;
         },
         onSuccess: (data, variables) => {
             queryClient.invalidateQueries(['assignedCustomers', agentEmail]);
+
+            // SweetAlert for successful status change
+            Swal.fire({
+                icon: 'success',
+                title: 'Status Updated!',
+                text: `Customer status changed to ${variables.newStatus}.`,
+                timer: 2000,
+                showConfirmButton: false,
+            });
 
             if (variables.newStatus === 'Approved' && variables.policyId) {
                 axiosSecure
@@ -50,6 +65,12 @@ const AssignedCustomers = () => {
         },
         onError: (err) => {
             console.error('Status update failed:', err.message);
+            // SweetAlert for failed status change
+            Swal.fire({
+                icon: 'error',
+                title: 'Update Failed!',
+                text: `Failed to update status: ${err.message}`,
+            });
         },
     });
 
@@ -73,7 +94,7 @@ const AssignedCustomers = () => {
     return (
         <>
             <Helmet>
-                <title>NeoTakaful | Assigned Customers</title>
+                <title>Assigned Customers</title>
             </Helmet>
 
             <motion.div
@@ -105,7 +126,16 @@ const AssignedCustomers = () => {
                                 <tbody className="bg-white divide-y divide-gray-200">
                                     {assignedCustomers.map((customer) => (
                                         <tr key={customer._id}>
-                                            <td className="px-3 py-4 text-sm">{customer.customerName}</td>
+                                            <td className="px-3 py-4 text-sm flex items-center">
+                                                {customer.personal?.userImg && (
+                                                    <img
+                                                        src={customer.personal.userImg}
+                                                        alt={customer.customerName}
+                                                        className="w-8 h-8 rounded-full mr-2 object-cover"
+                                                    />
+                                                )}
+                                                {customer.customerName}
+                                            </td>
                                             <td className="px-3 py-4 text-sm">{customer.customerEmail}</td>
                                             <td className="px-3 py-4 text-sm">{customer.policyTitle}</td>
                                             <td className="px-3 py-4">
@@ -155,7 +185,16 @@ const AssignedCustomers = () => {
                                 >
                                     <div className="flex justify-between items-center">
                                         <div>
-                                            <p className="text-lg font-semibold">{customer.customerName}</p>
+                                            <p className="text-lg font-semibold flex items-center">
+                                                {customer.personal?.userImg && (
+                                                    <img
+                                                        src={customer.personal.userImg}
+                                                        alt={customer.customerName}
+                                                        className="w-8 h-8 rounded-full mr-2 object-cover"
+                                                    />
+                                                )}
+                                                {customer.customerName}
+                                            </p>
                                             <p className="text-sm text-gray-500">{customer.customerEmail}</p>
                                             <p className="text-sm text-gray-500">Policy: {customer.policyTitle}</p>
                                         </div>
@@ -220,9 +259,22 @@ const AssignedCustomers = () => {
                                 {selectedCustomer.customerName}'s Details
                             </Dialog.Title>
 
-                            <div className="space-y-3 text-sm text-gray-700">
+                            <div className="space-y-3 text-sm text-gray-700 overflow-y-auto max-h-[70vh] pr-2">
+                                {selectedCustomer.personal?.userImg && (
+                                    <>
+                                        <img
+                                            src={selectedCustomer.personal.userImg}
+                                            alt={`${selectedCustomer.customerName}'s profile`}
+                                            className="rounded-full w-24 h-24 object-cover mx-auto mb-4"
+                                        />
+                                        <hr className="border-gray-200" />
+                                    </>
+                                )}
                                 <p>
                                     <strong>Email:</strong> {selectedCustomer.customerEmail}
+                                </p>
+                                <p>
+                                    <strong>Phone:</strong> {selectedCustomer.personal?.phone || 'N/A'}
                                 </p>
                                 <p>
                                     <strong>Policy:</strong> {selectedCustomer.policyTitle}
@@ -240,49 +292,82 @@ const AssignedCustomers = () => {
                                         {selectedCustomer.status}
                                     </span>
                                 </p>
+                                {/* Removed: Display Payment Status in Modal */}
+                                {/* The previous code block for payment status was here and has been removed. */}
 
                                 {selectedCustomer.personal && (
                                     <>
-                                        <hr />
+                                        <hr className="border-gray-200" />
                                         <p>
-                                            <strong>Address:</strong> {selectedCustomer.personal.address}
+                                            <strong>Address:</strong> {selectedCustomer.personal.address || 'N/A'}
                                         </p>
                                         <p>
-                                            <strong>NID:</strong> {selectedCustomer.personal.nid}
+                                            <strong>NID:</strong> {selectedCustomer.personal.nid || 'N/A'}
                                         </p>
                                     </>
                                 )}
 
                                 {selectedCustomer.nominee && (
                                     <>
-                                        <hr />
+                                        <hr className="border-gray-200" />
                                         <p>
-                                            <strong>Nominee Name:</strong> {selectedCustomer.nominee.name}
+                                            <strong>Nominee Name:</strong> {selectedCustomer.nominee.name || 'N/A'}
                                         </p>
                                         <p>
-                                            <strong>Relationship:</strong> {selectedCustomer.nominee.relationship}
+                                            <strong>Relationship:</strong> {selectedCustomer.nominee.relationship || 'N/A'}
                                         </p>
                                     </>
                                 )}
 
                                 {selectedCustomer.healthDisclosure?.length > 0 && (
                                     <>
-                                        <hr />
+                                        <hr className="border-gray-200" />
                                         <p>
                                             <strong>Health Issues:</strong>{' '}
-                                            {selectedCustomer.healthDisclosure.join(', ')}
+                                            {selectedCustomer.healthDisclosure.join(', ') || 'None'}
                                         </p>
                                     </>
                                 )}
 
-                                {selectedCustomer.policyImg && (
+                                {/* Policy & Quote Details Section */}
+                                {selectedCustomer.quoteDetails && (
                                     <>
-                                        <hr />
-                                        <img
-                                            src={selectedCustomer.policyImg}
-                                            alt="Policy"
-                                            className="rounded-xl w-full h-40 object-cover mt-2"
-                                        />
+                                        <hr className="border-gray-200" />
+                                        <h3 className="font-semibold text-base mt-4 mb-2 text-blue-700">Policy & Quote Details</h3>
+                                        {selectedCustomer.policyImg && (
+                                            <img
+                                                src={selectedCustomer.policyImg}
+                                                alt="Policy"
+                                                className="rounded-xl w-full h-40 object-cover mt-2"
+                                            />
+                                        )}
+                                        <p>
+                                            <strong>Age at Application:</strong> {selectedCustomer.quoteDetails.age || 'N/A'}
+                                        </p>
+                                        <p>
+                                            <strong>Gender:</strong> {selectedCustomer.quoteDetails.gender || 'N/A'}
+                                        </p>
+                                        <p>
+                                            <strong>Coverage Amount:</strong> Tk{Number(selectedCustomer.quoteDetails.coverageAmount).toLocaleString() || 'N/A'}
+                                        </p>
+                                        <p>
+                                            <strong>Duration:</strong> {selectedCustomer.quoteDetails.duration || 'N/A'} Years
+                                        </p>
+                                        <p>
+                                            <strong>Smoker Status:</strong> {selectedCustomer.quoteDetails.smoker || 'N/A'}
+                                        </p>
+                                        <p>
+                                            <strong>Monthly Contribution:</strong>{' '}
+                                            <span className="font-bold text-green-600">
+                                                Tk{Number(selectedCustomer.quoteDetails.monthlyContribution).toLocaleString() || 'N/A'}
+                                            </span>
+                                        </p>
+                                        <p>
+                                            <strong>Annual Contribution:</strong>{' '}
+                                            <span className="font-bold text-green-600">
+                                                Tk{Number(selectedCustomer.quoteDetails.annualContribution).toLocaleString() || 'N/A'}
+                                            </span>
+                                        </p>
                                     </>
                                 )}
                             </div>

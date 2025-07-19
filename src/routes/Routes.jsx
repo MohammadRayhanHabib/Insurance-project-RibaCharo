@@ -23,6 +23,8 @@ import ManagePolicies from '../pages/AdminPage/ManagePolicies'
 import ManageApplications from '../pages/AdminPage/ManageApplications'
 import AssignedCustomers from '../pages/AgentPage/AssignedCustomers'
 import AgentRoute from './AgentRoute'
+import CustomerPaymentStatusPage from '../pages/CustomerPage/CustomerPaymentStatusPage'
+import PaymentPage from '../pages/CustomerPage/PaymentPage'
 
 
 export const router = createBrowserRouter([
@@ -92,11 +94,21 @@ export const router = createBrowserRouter([
                     // Customer routes
 
                     { path: 'my-policies', element: <CustomerRoute><MyPolicies /></CustomerRoute> },
-                    { path: 'payment-status', element: <CustomerRoute><PaymentStatus /></CustomerRoute> },
+                    { path: 'payment-status', element: <CustomerRoute><CustomerPaymentStatusPage></CustomerPaymentStatusPage></CustomerRoute> },
+                    {
+
+
+                    }
                     // { path: 'claim-request', element: <CustomerRoute><ClaimRequest /></CustomerRoute> },
                     // { path: '', element: <Navigate to="profile" /> }, // Default route
                 ],
+
+            },
+            {
+                path: "/payment/:applicationId",
+                element: <PaymentPage></PaymentPage>
             }
+
 
 
         ],

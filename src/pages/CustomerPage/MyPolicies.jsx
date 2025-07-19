@@ -1,12 +1,15 @@
-import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
-import { Dialog } from '@headlessui/react';
-import { Star, X } from 'lucide-react';
+import React, { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Helmet } from 'react-helmet';
+import { Loader2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Dialog } from '@headlessui/react';
+import { Star } from 'lucide-react'; // Ensure Star is imported
 import { axiosSecure } from '../../hooks/useAxiosSecure';
 import useAuth from '../../hooks/useAuth';
 import jsPDF from 'jspdf';
 import Swal from 'sweetalert2';
+
 export default function MyPoliciesPage() {
     const { user } = useAuth();
     const [selectedPolicy, setSelectedPolicy] = useState(null);
@@ -124,14 +127,19 @@ export default function MyPoliciesPage() {
             doc.text(`Eligibility: ${policy.eligibility || 'N/A'}`, 14, 200);
             doc.text(`Premium Logic Note: ${policy.premiumLogicNote || 'N/A'}`, 14, 210);
         } else {
-            doc.text('Policy details not available.', 14, 110);
+            doc.text('Policy details not available.', 14, 11);
         }
 
         doc.save(`${application?.policyTitle?.replace(/\s+/g, '_') || 'policy'}.pdf`);
     };
 
     if (isLoadingApplications || isLoadingPolicies) {
-        return <div>Loading...</div>;
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                <Loader2 className="h-10 w-10 animate-spin text-teal-500" />
+                <p className="text-gray-600 ml-3 text-lg">Loading your policies...</p>
+            </div>
+        );
     }
 
     return (
@@ -169,6 +177,7 @@ export default function MyPoliciesPage() {
                                         alt={app.policyTitle}
                                         className="w-16 h-16 rounded-xl object-cover border-2 border-teal-500 hover:border-teal-600 transition-all duration-200"
                                         whileHover={{ scale: 1.1 }}
+                                        whileTap={{ scale: 0.9 }}
                                     />
                                 </td>
                                 <td className="px-4 py-3 whitespace-nowrap text-gray-800">{app.personal?.name || 'N/A'}</td>
@@ -200,20 +209,17 @@ export default function MyPoliciesPage() {
                                 </td>
                                 <td className="px-4 py-3 whitespace-nowrap">
                                     {/* Submit Review Button Logic */}
-                                    {(app.status === 'Approved' || app.status === 'Pending') ? (
-                                        <motion.button
-                                            onClick={() => handleReview(app)}
-                                            className={`px-3 py-1.5 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-xl shadow-lg transition-all duration-300 text-sm ${app.status === 'Pending' ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-xl hover:from-purple-600 hover:to-indigo-600'
-                                                }`}
-                                            whileHover={app.status === 'Approved' ? { scale: 1.05 } : {}}
-                                            whileTap={app.status === 'Approved' ? { scale: 0.95 } : {}}
-                                            disabled={app.status === 'Pending'}
-                                        >
-                                            Submit Review
-                                        </motion.button>
-                                    ) : (
-                                        <span className="text-gray-400 italic text-sm">N/A</span>
-                                    )}
+                                    {/* ✨ MODIFIED: Changed rendering condition to always show the button */}
+                                    <motion.button
+                                        onClick={() => handleReview(app)}
+                                        className={`px-3 py-1.5 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-xl shadow-lg transition-all duration-300 text-sm ${app.status === 'Pending' || app.status === 'Rejected' ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-xl hover:from-purple-600 hover:to-indigo-600'
+                                            }`}
+                                        whileHover={app.status === 'Approved' ? { scale: 1.05 } : {}}
+                                        whileTap={app.status === 'Approved' ? { scale: 0.95 } : {}}
+                                        disabled={app.status === 'Pending' || app.status === 'Rejected'}
+                                    >
+                                        Submit Review
+                                    </motion.button>
                                 </td>
                                 <td className="px-4 py-3 whitespace-nowrap">
                                     {/* Download Policy Button Logic */}
@@ -251,6 +257,7 @@ export default function MyPoliciesPage() {
                                 alt={app.policyTitle}
                                 className="w-20 h-20 rounded-xl object-cover border-2 border-teal-500"
                                 whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.9 }}
                             />
                             <div className="flex-1">
                                 <h3 className="text-lg font-bold text-gray-800">{app.policyTitle}</h3>
@@ -281,19 +288,16 @@ export default function MyPoliciesPage() {
                             </motion.button>
 
                             {/* Mobile Review Button Logic */}
-                            {(app.status === 'Approved' || app.status === 'Pending') ? (
-                                <motion.button
-                                    onClick={() => handleReview(app)}
-                                    className={`px-3 py-2 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-lg shadow-md transition-all duration-200 ${app.status === 'Pending' ? 'opacity-50 cursor-not-allowed' : 'hover:from-purple-600 hover:to-indigo-600'
-                                        }`}
-                                    whileTap={app.status === 'Approved' ? { scale: 0.95 } : {}}
-                                    disabled={app.status === 'Pending'}
-                                >
-                                    Review
-                                </motion.button>
-                            ) : (
-                                <span className="px-3 py-2 text-center text-gray-400 italic text-xs">No Review</span>
-                            )}
+                            {/* ✨ MODIFIED: Changed rendering condition to always show the button */}
+                            <motion.button
+                                onClick={() => handleReview(app)}
+                                className={`px-3 py-2 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-lg shadow-md transition-all duration-200 ${app.status === 'Pending' || app.status === 'Rejected' ? 'opacity-50 cursor-not-allowed' : 'hover:from-purple-600 hover:to-indigo-600'
+                                    }`}
+                                whileTap={app.status === 'Approved' ? { scale: 0.95 } : {}}
+                                disabled={app.status === 'Pending' || app.status === 'Rejected'}
+                            >
+                                Review
+                            </motion.button>
 
                             {/* Mobile Download Policy Button Logic */}
                             <motion.button
@@ -374,6 +378,7 @@ export default function MyPoliciesPage() {
                                         alt={selectedPolicy.policyTitle}
                                         className="w-full h-48 object-cover rounded-xl border-2 border-teal-500 hover:border-teal-600 transition-all duration-200"
                                         whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.9 }}
                                     />
                                     {/* Display additional policy details in the modal */}
                                     {policies[selectedPolicy.policyId] && (
@@ -460,7 +465,6 @@ export default function MyPoliciesPage() {
                                     <textarea
                                         value={feedback}
                                         onChange={(e) => setFeedback(e.target.value)}
-
                                         className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200 "
                                         rows={4}
                                         placeholder="Share your thoughts..."

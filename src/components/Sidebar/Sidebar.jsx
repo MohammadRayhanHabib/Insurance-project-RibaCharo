@@ -14,6 +14,7 @@ import {
     DollarSign,
     FileWarning,
 } from 'lucide-react';
+import SideLogo from './SideLogo';
 
 const Sidebar = ({ role, isOpen }) => {
     const location = useLocation();
@@ -50,8 +51,8 @@ const Sidebar = ({ role, isOpen }) => {
 
     return (
         <aside
-            className={`bg-white shadow-xl p-4 md:p-6 h-full md:h-screen overflow-y-auto 
-        ${isOpen ? 'block' : 'hidden md:block'} w-64 lg:w-72 transition-all duration-300`}
+            className={` fixed p-4 md:p-6 h-full md:h-screen overflow-y-auto  
+        ${isOpen ? 'block' : 'hidden md:block'} w-64 lg:w-72 transition-all duration-300 fixed`}
         >
             {/* Dashboard Title */}
             <h2 className="text-2xl font-bold text-gray-800 mb-4 md:mb-6 bg-gradient-to-r from-green-600 to-teal-500 bg-clip-text text-transparent">
