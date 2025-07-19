@@ -127,7 +127,7 @@ export default function MyPoliciesPage() {
             doc.text(`Eligibility: ${policy.eligibility || 'N/A'}`, 14, 200);
             doc.text(`Premium Logic Note: ${policy.premiumLogicNote || 'N/A'}`, 14, 210);
         } else {
-            doc.text('Policy details not available.', 14, 11);
+            doc.text('Policy details not available.', 14, 110);
         }
 
         doc.save(`${application?.policyTitle?.replace(/\s+/g, '_') || 'policy'}.pdf`);
