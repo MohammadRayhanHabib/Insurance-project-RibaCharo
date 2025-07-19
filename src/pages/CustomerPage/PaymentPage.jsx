@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router'; // Corrected import from 'react-router' to 'react-router-dom'
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Helmet } from 'react-helmet';
-import { Loader2 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Loader2, CheckCircle, XCircle, X } from 'lucide-react'; // Added CheckCircle and XCircle icons
+import { motion, AnimatePresence } from 'framer-motion'; // Added AnimatePresence for exit animations
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import useAuth from '../../hooks/useAuth'; // Assuming you have this hook
@@ -14,21 +14,64 @@ import { axiosSecure } from '../../hooks/useAxiosSecure'; // Ensure this import 
 // Ensure your .env file has VITE_STRIPE_PUBLISHABLE_KEY=pk_test_YOUR_PUBLISHABLE_KEY
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
+// Custom Modal Component for Alerts
+const CustomAlertModal = ({ message, type, onClose }) => {
+    const isSuccess = type === 'success';
+    const bgColor = isSuccess ? 'bg-green-500' : 'bg-red-500';
+    const icon = isSuccess ? <CheckCircle size={48} className="text-white" /> : <XCircle size={48} className="text-white" />;
+    const title = isSuccess ? 'Payment Successful!' : 'Payment Failed!';
+
+    // Removed sound effect logic (Tone.js useEffect)
+
+    return (
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            // Removed background color and opacity to make it "normal" (transparent)
+            className="fixed inset-0 flex items-center justify-center z-50 p-4"
+            onClick={onClose} // Close on backdrop click
+        >
+            <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.8, opacity: 0 }}
+                transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                className={`relative p-8 rounded-2xl shadow-2xl max-w-sm w-full text-center ${bgColor} text-white`}
+                onClick={e => e.stopPropagation()} // Prevent closing when clicking inside modal
+            >
+                <button
+                    onClick={onClose}
+                    className="absolute top-4 right-4 text-white hover:text-gray-200 transition-colors"
+                    aria-label="Close alert"
+                >
+                    <X size={24} />
+                </button>
+                <div className="mb-4 flex justify-center">{icon}</div>
+                <h3 className="text-2xl font-bold mb-3">{title}</h3>
+                <p className="text-lg">{message}</p>
+            </motion.div>
+        </motion.div>
+    );
+};
+
+
 const CheckoutForm = ({ application, premiumAmount, paymentFrequency }) => {
     const stripe = useStripe();
     const elements = useElements();
-    const { user } = useAuth(); // Get logged-in user for email
+    const { user } = useAuth();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
 
     const [clientSecret, setClientSecret] = useState('');
     const [processing, setProcessing] = useState(false);
-    const [paymentError, setPaymentError] = useState(null);
-    const [paymentSuccess, setPaymentSuccess] = useState(null);
+    const [alertMessage, setAlertMessage] = useState(null); // For custom alert message
+    const [alertType, setAlertType] = useState(null); // 'success' or 'error'
 
     // Fetch client secret for Payment Intent
     useEffect(() => {
-        setPaymentError(null); // Clear previous errors when premiumAmount changes
+        setAlertMessage(null); // Clear previous alerts when premiumAmount changes
+        setAlertType(null);
         if (premiumAmount > 0) {
             axiosSecure.post('/create-payment-intent', { amount: premiumAmount })
                 .then(res => {
@@ -36,10 +79,11 @@ const CheckoutForm = ({ application, premiumAmount, paymentFrequency }) => {
                 })
                 .catch(err => {
                     console.error('Error creating payment intent:', err);
-                    setPaymentError('Failed to initialize payment. Please check your network and try again.');
+                    setAlertMessage('Failed to initialize payment. Please check your network and try again.');
+                    setAlertType('error');
                 });
         } else {
-            setClientSecret(''); // Clear client secret if amount is invalid
+            setClientSecret('');
         }
     }, [premiumAmount]);
 
@@ -47,14 +91,14 @@ const CheckoutForm = ({ application, premiumAmount, paymentFrequency }) => {
         event.preventDefault();
 
         if (!stripe || !elements || !clientSecret) {
-            // Stripe.js has not yet loaded or clientSecret is missing.
-            setPaymentError('Payment system not ready. Please wait or refresh.');
+            setAlertMessage('Payment system not ready. Please wait or refresh.');
+            setAlertType('error');
             return;
         }
 
         setProcessing(true);
-        setPaymentError(null);
-        setPaymentSuccess(null);
+        setAlertMessage(null);
+        setAlertType(null);
 
         const card = elements.getElement(CardElement);
 
@@ -70,17 +114,16 @@ const CheckoutForm = ({ application, premiumAmount, paymentFrequency }) => {
 
         if (error) {
             console.error('[Stripe Error]', error);
-            setPaymentError(error.message);
+            setAlertMessage(error.message);
+            setAlertType('error');
             setProcessing(false);
         } else if (paymentIntent.status === 'succeeded') {
             console.log('[PaymentIntent]', paymentIntent);
-            // Payment was successful on Stripe's side. Now, update your database.
 
-            // Save payment info to database
             const paymentInfo = {
                 applicationId: application._id,
                 transactionId: paymentIntent.id,
-                amount: paymentIntent.amount / 100, // Convert back to original currency unit
+                amount: paymentIntent.amount / 100,
                 currency: paymentIntent.currency,
                 paymentDate: new Date().toISOString(),
                 paymentMethod: 'card',
@@ -88,89 +131,100 @@ const CheckoutForm = ({ application, premiumAmount, paymentFrequency }) => {
                 customerName: user?.displayName || application?.personal?.name,
                 policyTitle: application.policyTitle,
                 paymentFrequency: paymentFrequency,
-                // Add any other relevant payment details
             };
 
             try {
-                // Call backend to save payment info and update application status
                 await axiosSecure.post('/payments', paymentInfo);
-                queryClient.invalidateQueries(['userApplications', user?.email]); // Invalidate to update PaymentStatus page
-                queryClient.invalidateQueries(['application', application._id]); // Invalidate single application query
+                queryClient.invalidateQueries(['userApplications', user?.email]);
+                queryClient.invalidateQueries(['application', application._id]);
 
-                setPaymentSuccess(`Payment successful! Transaction ID: ${paymentIntent.id}`); // Set success message ONLY if DB update succeeds
+                setAlertMessage(`Payment successful! Transaction ID: ${paymentIntent.id}`);
+                setAlertType('success');
+
                 setTimeout(() => {
-                    navigate('/dashboard/payment-status'); // Corrected: Redirect to the full dashboard path for payment status
-                }, 2000); // Redirect after 2 seconds
+                    navigate('/dashboard/payment-status'); // Corrected redirect path
+                }, 2000);
             } catch (dbError) {
                 console.error('Error saving payment info to DB:', dbError);
-                setPaymentError('Payment successful, but failed to update records. Please contact support.');
+                setAlertMessage('Payment successful, but failed to update records. Please contact support.');
+                setAlertType('error');
             } finally {
                 setProcessing(false);
             }
         } else {
-            setPaymentError('Payment failed. Please try again.');
+            setAlertMessage('Payment failed. Please try again.');
+            setAlertType('error');
             setProcessing(false);
         }
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-6 p-6 bg-white rounded-xl shadow-lg border border-gray-100">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">Enter Card Details</h2>
-            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Card Information
-                    </label>
-                    <div className="p-3 border border-gray-300 rounded-md bg-white shadow-sm">
-                        <CardElement
-                            options={{
-                                style: {
-                                    base: {
-                                        fontSize: '16px',
-                                        color: '#424770',
-                                        '::placeholder': {
-                                            color: '#aab7c4',
+        <>
+            <form onSubmit={handleSubmit} className="space-y-6 p-6 bg-white rounded-xl shadow-lg border border-gray-100">
+                <h2 className="text-2xl font-bold text-gray-800 mb-4">Enter Card Details</h2>
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Card Information
+                        </label>
+                        <div className="p-3 border border-gray-300 rounded-md bg-white shadow-sm">
+                            <CardElement
+                                options={{
+                                    style: {
+                                        base: {
+                                            fontSize: '16px',
+                                            color: '#424770',
+                                            '::placeholder': {
+                                                color: '#aab7c4',
+                                            },
+                                        },
+                                        invalid: {
+                                            color: '#ef4444',
+                                            iconColor: '#ef4444',
                                         },
                                     },
-                                    invalid: {
-                                        color: '#ef4444', // Tailwind red-500
-                                        iconColor: '#ef4444',
-                                    },
-                                },
-                                hidePostalCode: true, // Often desired for simpler flows
-                            }}
-                        />
+                                    hidePostalCode: true,
+                                }}
+                            />
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            {paymentError && <p className="text-red-600 text-sm mt-2 font-medium">{paymentError}</p>}
-            {paymentSuccess && <p className="text-green-600 text-sm mt-2 font-medium">{paymentSuccess}</p>}
+                <motion.button
+                    type="submit"
+                    disabled={!stripe || !elements || processing || !clientSecret}
+                    className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold text-lg shadow-lg hover:from-green-600 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 transition-all duration-200"
+                    whileHover={{ scale: 1.02, boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)" }}
+                    whileTap={{ scale: 0.98 }}
+                >
+                    {processing ? (
+                        <>
+                            <Loader2 className="h-6 w-6 animate-spin" /> Processing...
+                        </>
+                    ) : (
+                        `Pay $${premiumAmount.toFixed(2)} ${paymentFrequency === 'monthly' ? 'Monthly' : 'Annually'}`
+                    )}
+                </motion.button>
+            </form>
 
-            <motion.button
-                type="submit"
-                disabled={!stripe || !elements || processing || !clientSecret}
-                className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold text-lg shadow-lg hover:from-green-600 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 transition-all duration-200"
-                whileHover={{ scale: 1.02, boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)" }}
-                whileTap={{ scale: 0.98 }}
-            >
-                {processing ? (
-                    <>
-                        <Loader2 className="h-6 w-6 animate-spin" /> Processing...
-                    </>
-                ) : (
-                    `Pay $${premiumAmount.toFixed(2)} ${paymentFrequency === 'monthly' ? 'Monthly' : 'Annually'}`
+            {/* Custom Alert Modal */}
+            <AnimatePresence>
+                {alertMessage && (
+                    <CustomAlertModal
+                        message={alertMessage}
+                        type={alertType}
+                        onClose={() => { setAlertMessage(null); setAlertType(null); }}
+                    />
                 )}
-            </motion.button>
-        </form>
+            </AnimatePresence>
+        </>
     );
 };
 
 const PaymentPage = () => {
-    const { applicationId } = useParams(); // Get application ID from URL
-    const { user } = useAuth(); // Get logged-in user
+    const { applicationId } = useParams();
+    const { user } = useAuth();
 
-    // Fetch the specific application details
     const { data: application, isLoading, error } = useQuery({
         queryKey: ['application', applicationId],
         queryFn: async () => {
@@ -179,13 +233,12 @@ const PaymentPage = () => {
             return res.data;
         },
         enabled: !!applicationId,
-        staleTime: 5 * 60 * 1000, // Data considered fresh for 5 minutes
-        cacheTime: 10 * 60 * 1000, // Data stays in cache for 10 minutes
+        staleTime: 5 * 60 * 1000,
+        cacheTime: 10 * 60 * 1000,
     });
 
-    // Determine the premium amount and frequency to pass to Stripe
     const [premiumAmount, setPremiumAmount] = useState(0);
-    const [paymentFrequency, setPaymentFrequency] = useState('monthly'); // Default to monthly
+    const [paymentFrequency, setPaymentFrequency] = useState('monthly');
 
     useEffect(() => {
         if (application?.quoteDetails) {
@@ -195,7 +248,7 @@ const PaymentPage = () => {
                 setPremiumAmount(parseFloat(application.quoteDetails.annualContribution));
             }
         }
-    }, [application, paymentFrequency]); // Re-run when application or paymentFrequency changes
+    }, [application, paymentFrequency]);
 
 
     if (isLoading) {
@@ -222,7 +275,7 @@ const PaymentPage = () => {
             </Helmet>
 
             <motion.div
-                className="max-w-xl mx-auto p-6 bg-white rounded-3xl shadow-2xl my-8" // Added vertical margin
+                className="max-w-xl mx-auto p-6 bg-white rounded-3xl shadow-2xl my-8"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
@@ -296,4 +349,3 @@ const PaymentPage = () => {
 };
 
 export default PaymentPage;
-

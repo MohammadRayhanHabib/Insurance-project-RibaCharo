@@ -25,6 +25,7 @@ import AssignedCustomers from '../pages/AgentPage/AssignedCustomers'
 import AgentRoute from './AgentRoute'
 import CustomerPaymentStatusPage from '../pages/CustomerPage/CustomerPaymentStatusPage'
 import PaymentPage from '../pages/CustomerPage/PaymentPage'
+import ManageTransactions from '../pages/AdminPage/ManageTransactions'
 
 
 export const router = createBrowserRouter([
@@ -86,7 +87,7 @@ export const router = createBrowserRouter([
 
                     { path: 'manage-users', element: <AdminRoute><ManageUsers /></AdminRoute> },
                     { path: 'manage-policies', element: <AdminRoute><ManagePolicies /></AdminRoute> },
-                    // { path: 'manage-transactions', element: <AdminRoute><ManageTransactions /></AdminRoute> },
+                    { path: 'manage-transactions', element: <AdminRoute><ManageTransactions /></AdminRoute> },
                     // Agent Routes
                     { path: 'assigned-customers', element: <AgentRoute><AssignedCustomers /></AgentRoute> },
                     // { path: 'manage-blogs', element: <AgentRoute><ManageBlogs /></AgentRoute> },
