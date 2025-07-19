@@ -371,7 +371,7 @@ const ManageApplications = () => {
 
                 {/* Modal for application details */}
                 {selectedApp && (
-                    <Dialog open={true} onClose={() => setSelectedApp(null)} className="fixed z-50 inset-0 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
+                    <Dialog open={true} onClose={() => setSelectedApp(null)} className="fixed z-50 inset-0 overflow-y-auto  bg-opacity-50 flex items-center justify-center p-4">
                         <motion.div
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}

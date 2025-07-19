@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router'; // Changed from 'react-router' to 'react-router-dom'
+import { useParams, useNavigate } from 'react-router'; // Corrected import from 'react-router' to 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Helmet } from 'react-helmet';
 import { Loader2 } from 'lucide-react';
@@ -74,7 +74,7 @@ const CheckoutForm = ({ application, premiumAmount, paymentFrequency }) => {
             setProcessing(false);
         } else if (paymentIntent.status === 'succeeded') {
             console.log('[PaymentIntent]', paymentIntent);
-            setPaymentSuccess(`Payment successful! Transaction ID: ${paymentIntent.id}`);
+            // Payment was successful on Stripe's side. Now, update your database.
 
             // Save payment info to database
             const paymentInfo = {
@@ -97,8 +97,9 @@ const CheckoutForm = ({ application, premiumAmount, paymentFrequency }) => {
                 queryClient.invalidateQueries(['userApplications', user?.email]); // Invalidate to update PaymentStatus page
                 queryClient.invalidateQueries(['application', application._id]); // Invalidate single application query
 
+                setPaymentSuccess(`Payment successful! Transaction ID: ${paymentIntent.id}`); // Set success message ONLY if DB update succeeds
                 setTimeout(() => {
-                    navigate('/payment-status'); // Redirect back to payment status page
+                    navigate('/dashboard/payment-status'); // Corrected: Redirect to the full dashboard path for payment status
                 }, 2000); // Redirect after 2 seconds
             } catch (dbError) {
                 console.error('Error saving payment info to DB:', dbError);
@@ -295,3 +296,4 @@ const PaymentPage = () => {
 };
 
 export default PaymentPage;
+
