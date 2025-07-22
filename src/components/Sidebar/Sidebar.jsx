@@ -28,12 +28,16 @@ const Sidebar = ({ role, isOpen }) => {
         { to: '/dashboard/manage-users', label: 'Manage Users', icon: <Users size={20} /> },
         { to: '/dashboard/manage-policies', label: 'Manage Policies', icon: <ClipboardList size={20} /> },
         { to: '/dashboard/manage-transactions', label: 'Manage Transactions', icon: <CreditCard size={20} /> },
+        { to: '/dashboard/manage-blogs', label: 'Manage Blogs', icon: <Newspaper size={20} /> }, // Admin can see all blogs
+
     ];
 
     const agentLinks = [
         { to: '/dashboard/assigned-customers', label: 'Assigned Customers', icon: <UserCheck size={20} /> },
         { to: '/dashboard/manage-blogs', label: 'Manage Blogs', icon: <Newspaper size={20} /> },
         { to: '/dashboard/policy-clearance', label: 'Policy Clearance', icon: <CheckCircle size={20} /> },
+        { to: '/dashboard/manage-blogs', label: 'Manage Blogs', icon: <Newspaper size={20} /> }, // Admin can see all blogs
+
     ];
 
     const customerLinks = [

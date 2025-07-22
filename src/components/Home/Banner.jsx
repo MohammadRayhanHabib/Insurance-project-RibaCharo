@@ -1,16 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react'; // Import useState
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, Pagination, Navigation } from 'swiper/modules';
-import {
-    FaShieldAlt,
-    FaUsers,
-    FaClock,
-    FaGlobeAsia,
-    FaBalanceScale,
-    FaHandHoldingHeart,
-    FaHandshake,
-} from 'react-icons/fa';
+import { Clock, Globe, Handshake, Users, Scale, Heart } from 'lucide-react';
 import { Typewriter } from 'react-simple-typewriter';
+import { motion, AnimatePresence } from 'framer-motion'; // Import AnimatePresence
 import 'swiper/css';
 import 'swiper/css/pagination';
 import 'swiper/css/navigation';
@@ -27,7 +20,7 @@ const slides = [
         buttonLabel: 'Get a Free Quote',
     },
     {
-        image: 'https://i.pinimg.com/736x/ca/95/57/ca9557b4571252daad1a527137fddfbb.jpg ',
+        image: 'https://i.pinimg.com/736x/ca/95/57/ca9557b4571252daad1a527137fddfbb.jpg',
         title: 'Family Protection the Halal Way',
         time: 'Flexible Monthly Plans',
         location: 'Worldwide Accessibility',
@@ -49,75 +42,128 @@ const slides = [
 ];
 
 const BannerSlider = () => {
+    // State to keep track of the active slide index
+    const [activeIndex, setActiveIndex] = useState(0);
+
     return (
-        <div className="w-full h-[70vh] relative mt-10">
+        <div className="w-full h-[50vh] sm:h-[60vh] md:h-[70vh] relative mt-6 sm:mt-10">
+            <style>
+                {`
+                    .swiper-pagination-bullet {
+                        background: #14b8a6;
+                        opacity: 0.7;
+                    }
+                    .swiper-pagination-bullet-active {
+                        background: #059669;
+                        opacity: 1;
+                    }
+                    .swiper-button-prev, .swiper-button-next {
+                        color: #14b8a6;
+                        background: rgba(255, 255, 255, 0.2);
+                        border-radius: 50%;
+                        width: 40px;
+                        height: 40px;
+                        transition: background 0.3s;
+                    }
+                    .swiper-button-prev:hover, .swiper-button-next:hover {
+                        background: rgba(255, 255, 255, 0.4);
+                    }
+                    .swiper-button-prev:after, .swiper-button-next:after {
+                        font-size: 20px;
+                    }
+                `}
+            </style>
             <Swiper
                 modules={[Autoplay, Pagination, Navigation]}
-                autoplay={{ delay: 5000 }}
+                autoplay={{ delay: 4000, disableOnInteraction: false }}
                 loop={true}
                 pagination={{ clickable: true }}
                 navigation
-                className="h-full "
+                className="h-full rounded-3xl overflow-hidden"
+                // Update activeIndex state when slide changes
+                onSlideChange={(swiper) => setActiveIndex(swiper.realIndex)}
             >
                 {slides.map((slide, idx) => (
                     <SwiperSlide key={idx}>
-                        <div
-                            className="mb-10 w-full h-full bg-cover bg-center flex items-center justify-center rounded-3xl "
+                        <motion.div
+                            className="w-full h-full bg-cover bg-center flex items-center justify-center relative"
                             style={{ backgroundImage: `url(${slide.image})` }}
-
+                            // Initial animation only on mount, not on every slide change
+                            initial={{ scale: 1.1 }}
+                            animate={{ scale: 1 }}
+                            transition={{ duration: 5 }}
                         >
-                            <div className="bg-white/1 mx-2  backdrop-blur-3xl lg:h-8/12 p-6 md:p-10 rounded-2xl lg:w-11/12 xl:w-9/12 text-black text-left border border-white/30 shadow-2xl transition duration-500 ease-in-out transform hover:scale-105 space-y-4">
-                                <div className=" flex items-center gap-2 text-black text-2xl font-semibold">
-                                    <FaShieldAlt />
-                                    <h2>
-                                        <Typewriter
-                                            words={[slide.title]}
-                                            loop={false}
-                                            cursor
-                                            cursorStyle="_"
-                                            typeSpeed={80}
-                                            deleteSpeed={50}
-                                            delaySpeed={1500}
-                                        />
-                                    </h2>
-                                </div>
+                            <div className="absolute inset-0 bg-black/50" />
+                            {/* Use AnimatePresence to ensure exit animations work if needed, though here mainly for re-mounting Typewriter */}
+                            <AnimatePresence mode='wait'>
+                                {activeIndex === idx && ( // Only render and animate if it's the active slide
+                                    <motion.div
+                                        key={idx} // Add key for AnimatePresence to track
+                                        className="relative bg-white/90 backdrop-blur-md mx-4 sm:mx-6 md:mx-8 p-4 sm:p-6 md:p-8 rounded-2xl lg:w-10/12 xl:w-8/12 text-black border border-white/20 shadow-2xl transition duration-300 hover:ring-2 hover:ring-teal-400 space-y-4 sm:space-y-6"
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -20 }} // Optional: Animate out
+                                        transition={{ duration: 0.5, delay: 0.2 }}
+                                    >
+                                        <div className="flex items-center gap-3 text-black text-xl sm:text-2xl md:text-3xl font-extrabold">
+                                            <Heart className="text-teal-500 w-6 h-6 sm:w-8 sm:h-8" />
+                                            <h2>
+                                                {/* Only activate Typewriter for the current active slide */}
+                                                <Typewriter
+                                                    words={[slide.title]}
+                                                    loop={1} // Set loop to 1 so it runs once per activation
+                                                    cursor
+                                                    cursorStyle="|"
+                                                    typeSpeed={60}
+                                                    deleteSpeed={40}
+                                                    delaySpeed={1000}
+                                                // onLoopDone={() => console.log('Typewriter done')} // For debugging
+                                                />
+                                            </h2>
+                                        </div>
 
-                                <div className="grid md:grid-cols-2 gap-4 text-base ">
-                                    <div className="flex items-center gap-2">
-                                        <FaClock className="text-yellow-300" />
-                                        <span><strong>Availability:</strong> {slide.time}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <FaGlobeAsia className="text-blue-300" />
-                                        <span><strong>Coverage:</strong> {slide.location}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <FaHandshake className="text-red-300" />
-                                        <span><strong>Enrollment:</strong> {slide.opening}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <FaUsers className="text-purple-300" />
-                                        <span><strong>Community:</strong> {slide.startingPoint}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <FaBalanceScale className="text-green-300" />
-                                        <span><strong>Ethics:</strong> {slide.method}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <FaHandHoldingHeart className="text-pink-300" />
-                                        <span><strong>Values:</strong> Mutual Care & Support</span>
-                                    </div>
-                                </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm sm:text-base md:text-lg">
+                                            <div className="flex items-center gap-2">
+                                                <Clock className="text-yellow-400 w-5 h-5" />
+                                                <span><strong>Availability:</strong> {slide.time}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <Globe className="text-blue-400 w-5 h-5" />
+                                                <span><strong>Coverage:</strong> {slide.location}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <Handshake className="text-red-400 w-5 h-5" />
+                                                <span><strong>Enrollment:</strong> {slide.opening}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <Users className="text-purple-400 w-5 h-5" />
+                                                <span><strong>Community:</strong> {slide.startingPoint}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <Scale className="text-green-400 w-5 h-5" />
+                                                <span><strong>Ethics:</strong> {slide.method}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <Heart className="text-pink-400 w-5 h-5" />
+                                                <span><strong>Values:</strong> Mutual Care & Support</span>
+                                            </div>
+                                        </div>
 
-                                <p className="mt-4 text-black/90 font-medium leading-relaxed">
-                                    We believe in protecting lives the halal way — with transparency, fairness, and faith-based integrity. Join our Takaful system to secure your future and your family.
-                                </p>
+                                        <p className="mt-3 sm:mt-4 text-black/90 font-medium leading-relaxed text-sm sm:text-base">
+                                            We believe in protecting lives the halal way — with transparency, fairness, and faith-based integrity. Join our Takaful system to secure your future and your family.
+                                        </p>
 
-                                <button className="mt-4  bg-gradient-to-r from-teal-400 via-emerald-400 to-teal-500 hover:from-emerald-500 hover:to-teal-600 transition px-8 py-3 rounded-full text-black font-semibold shadow-lg">
-                                    {slide.buttonLabel}
-                                </button>
-                            </div>
-                        </div>
+                                        <motion.button
+                                            className="mt-3 sm:mt-4 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-white px-6 sm:px-8 py-2 sm:py-3 rounded-full font-semibold shadow-lg transition-all duration-300"
+                                            whileHover={{ scale: 1.05, boxShadow: '0 0 15px rgba(20, 184, 166, 0.5)' }}
+                                            whileTap={{ scale: 0.95 }}
+                                        >
+                                            {slide.buttonLabel}
+                                        </motion.button>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </motion.div>
                     </SwiperSlide>
                 ))}
             </Swiper>
@@ -126,4 +172,3 @@ const BannerSlider = () => {
 };
 
 export default BannerSlider;
-

@@ -10,26 +10,29 @@ import Swal from 'sweetalert2';
 const ManageApplications = () => {
     const queryClient = useQueryClient();
     const [selectedApp, setSelectedApp] = useState(null); // State for the application opened in the modal
+    const [isRejectModalOpen, setIsRejectModalOpen] = useState(false); // State for rejection feedback modal
+    const [rejectFeedback, setRejectFeedback] = useState(''); // State for rejection feedback text
+    const [rejectAppId, setRejectAppId] = useState(null); // State for the application being rejected
 
     // Query to fetch all applications
     const { data: applications = [], isLoading, error } = useQuery({
         queryKey: ['applications'],
         queryFn: async () => {
-            const res = await axiosSecure.get('/applications'); // Fetch all applications
+            const res = await axiosSecure.get('/applications');
             return res.data || [];
         },
     });
 
-    // Query to fetch all agents (for the assign agent dropdown)
+    // Query to fetch all agents
     const { data: agents = [] } = useQuery({
         queryKey: ['agents'],
         queryFn: async () => {
-            const res = await axiosSecure.get('/agents'); // Fetch all agents
+            const res = await axiosSecure.get('/agents');
             return res.data || [];
         },
     });
 
-    // Mutation to update an application (status, and trigger dataForAgents)
+    // Mutation to update an application
     const updateApplication = useMutation({
         mutationFn: async ({ id, updatesForApplicationUpdate, agentIdForDataForAgents }) => {
             const res = await axiosSecure.patch(`/applicationUpdate/${id}`, updatesForApplicationUpdate);
@@ -57,10 +60,11 @@ const ManageApplications = () => {
                     text: 'Could not fetch full application details for agent assignment.',
                 });
                 setSelectedApp(null);
+                setIsRejectModalOpen(false);
                 return;
             }
 
-            // --- Logic to create/update entry in dataForAgents if an agent was assigned ---
+            // Logic for agent assignment
             if (agentIdForDataForAgents && fullApplicationData) {
                 const assignedAgent = agents.find(agent => agent._id === agentIdForDataForAgents);
 
@@ -73,7 +77,6 @@ const ManageApplications = () => {
                     customerEmail: fullApplicationData.personal?.email,
                     policyTitle: fullApplicationData.policyTitle,
                     policyId: fullApplicationData.policyId,
-                    // status: 'Approved', // ✨ MODIFIED: Set to 'Approved' directly upon agent assignment
                     assignedAt: new Date().toISOString(),
                     personal: fullApplicationData.personal,
                     nominee: fullApplicationData.nominee,
@@ -84,10 +87,9 @@ const ManageApplications = () => {
 
                 try {
                     await axiosSecure.post('/dataForAgents', agentAssignmentData);
-                    console.log(`Agent assignment for application ${applicationId} recorded in dataForAgents.`);
                     Swal.fire({
                         icon: 'success',
-                        title: 'Application Approved and Agent Assigned!', // ✨ MODIFIED: Updated message
+                        title: 'Application Approved and Agent Assigned!',
                         text: `Application ${applicationId} has been approved and assigned to ${assignedAgent?.name || 'an agent'}.`,
                         timer: 2000,
                         showConfirmButton: false,
@@ -104,11 +106,11 @@ const ManageApplications = () => {
                 Swal.fire({
                     icon: 'info',
                     title: 'Application Rejected!',
-                    text: `Application ${applicationId} has been rejected.`,
+                    text: `Application ${applicationId} has been rejected. Feedback: ${originalUpdates.rejectFeedback || 'No feedback provided.'}`,
                     timer: 2000,
                     showConfirmButton: false,
                 });
-            } else if (originalUpdates.status === 'Approved') { // This block handles manual approval, which might not be needed if assignment implies approval
+            } else if (originalUpdates.status === 'Approved') {
                 Swal.fire({
                     icon: 'success',
                     title: 'Application Approved!',
@@ -119,6 +121,8 @@ const ManageApplications = () => {
             }
 
             setSelectedApp(null);
+            setIsRejectModalOpen(false);
+            setRejectFeedback('');
         },
         onError: (mutationError) => {
             console.error('Mutation error:', mutationError.message);
@@ -127,6 +131,8 @@ const ManageApplications = () => {
                 title: 'Operation Failed!',
                 text: `Failed to update application: ${mutationError.message}`,
             });
+            setIsRejectModalOpen(false);
+            setRejectFeedback('');
         },
     });
 
@@ -144,7 +150,7 @@ const ManageApplications = () => {
 
         updateApplication.mutate({
             id: appId,
-            updatesForApplicationUpdate: { status: 'Approved', agentId: agentId }, // ✨ MODIFIED: Set to 'Approved'
+            updatesForApplicationUpdate: { paymentStatus: 'Due', agentId: agentId },
             agentIdForDataForAgents: agentId
         });
     };
@@ -158,9 +164,23 @@ const ManageApplications = () => {
             });
             return;
         }
+        setRejectAppId(appId);
+        setIsRejectModalOpen(true);
+    };
+
+    const handleSubmitRejectFeedback = () => {
+        if (!rejectFeedback.trim()) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Feedback Required',
+                text: 'Please provide a reason for rejecting the application.',
+            });
+            return;
+        }
+
         updateApplication.mutate({
-            id: appId,
-            updatesForApplicationUpdate: { status: 'Rejected' },
+            id: rejectAppId,
+            updatesForApplicationUpdate: { status: 'Rejected', rejectFeedback: rejectFeedback.trim() },
             agentIdForDataForAgents: null
         });
     };
@@ -181,7 +201,7 @@ const ManageApplications = () => {
     return (
         <>
             <Helmet>
-                <title> Manage Applications</title>
+                <title>Manage Applications</title>
             </Helmet>
 
             <motion.div
@@ -233,10 +253,8 @@ const ManageApplications = () => {
                                                     {app.status}
                                                 </span>
                                             </td>
-                                            {/* Actions Column */}
                                             <td className="px-3 py-4 sm:px-4">
                                                 <div className="flex flex-col sm:flex-row flex-wrap gap-2 items-stretch sm:items-center">
-                                                    {/* Assign Agent Dropdown */}
                                                     <select
                                                         value={app.agentId || ''}
                                                         onChange={(e) => handleAssignAgentInRow(app._id, e.target.value, app.status)}
@@ -251,7 +269,6 @@ const ManageApplications = () => {
                                                         ))}
                                                     </select>
 
-                                                    {/* Reject Button */}
                                                     <motion.button
                                                         onClick={() => handleRejectInRow(app._id, app.status)}
                                                         className="flex-grow px-2 py-1 rounded-md bg-red-500 text-white text-xs sm:text-sm shadow hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
@@ -262,7 +279,6 @@ const ManageApplications = () => {
                                                         Reject
                                                     </motion.button>
 
-                                                    {/* View Details Button */}
                                                     <motion.button
                                                         onClick={() => setSelectedApp(app)}
                                                         className="flex-grow px-2 py-1 rounded-md bg-blue-500 text-white text-xs sm:text-sm shadow hover:bg-blue-600 whitespace-nowrap"
@@ -303,7 +319,6 @@ const ManageApplications = () => {
                                             <div className="flex-1 text-left">
                                                 <p className="font-semibold text-lg text-gray-800">{app.personal?.name}</p>
                                                 <p className="text-sm text-gray-500 break-all">{app.personal?.email}</p>
-                                                {/* Removed phone, coverage, monthly contribution from mobile card */}
                                             </div>
                                         </div>
                                         <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-100">
@@ -321,12 +336,10 @@ const ManageApplications = () => {
                                                 Applied: {new Date(app.createdAt).toLocaleDateString()}
                                             </span>
                                         </div>
-                                        {/* Policy Title is still useful here */}
                                         <div className="mt-2 text-sm text-gray-600">
                                             <p><strong>Policy:</strong> {app.policyTitle}</p>
                                         </div>
 
-                                        {/* Actions for Mobile Card */}
                                         <div className="flex flex-wrap gap-2 mt-3">
                                             <select
                                                 value={app.agentId || ''}
@@ -371,7 +384,7 @@ const ManageApplications = () => {
 
                 {/* Modal for application details */}
                 {selectedApp && (
-                    <Dialog open={true} onClose={() => setSelectedApp(null)} className="fixed z-50 inset-0 overflow-y-auto  bg-opacity-50 flex items-center justify-center p-4">
+                    <Dialog open={true} onClose={() => setSelectedApp(null)} className="fixed z-50 inset-0 overflow-y-auto bg-opacity-50 flex items-center justify-center p-4">
                         <motion.div
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
@@ -390,9 +403,7 @@ const ManageApplications = () => {
                                 {selectedApp?.personal?.name}'s Application Details
                             </Dialog.Title>
 
-                            {/* ✨ ADDED: Scrollable content area for the modal */}
-                            <div className="space-y-4 text-gray-700 text-sm sm:text-base overflow-y-auto max-h-[70vh] pr-2"> {/* Added max-h and overflow-y-auto */}
-                                {/* Applicant Info */}
+                            <div className="space-y-4 text-gray-700 text-sm sm:text-base overflow-y-auto max-h-[70vh] pr-2">
                                 <h3 className="font-semibold text-lg border-b pb-2 mb-2 text-green-700">Applicant Information</h3>
                                 <div className="flex items-center gap-3 mb-4">
                                     <img
@@ -409,16 +420,13 @@ const ManageApplications = () => {
                                 <p><strong>Address:</strong> {selectedApp?.personal?.address || 'N/A'}</p>
                                 <p><strong>NID:</strong> {selectedApp?.personal?.nid || 'N/A'}</p>
 
-                                {/* Nominee Info */}
                                 <h3 className="font-semibold text-lg border-b pb-2 mb-2 text-green-700 pt-4">Nominee Details</h3>
                                 <p><strong>Name:</strong> {selectedApp?.nominee?.name || 'N/A'}</p>
                                 <p><strong>Relationship:</strong> {selectedApp?.nominee?.relationship || 'N/A'}</p>
 
-                                {/* Health Disclosure */}
                                 <h3 className="font-semibold text-lg border-b pb-2 mb-2 text-green-700 pt-4">Health Disclosure</h3>
                                 <p>{selectedApp?.healthDisclosure?.length > 0 ? selectedApp.healthDisclosure.join(', ') : 'None'}</p>
 
-                                {/* Policy Details */}
                                 <h3 className="font-semibold text-lg border-b pb-2 mb-2 text-green-700 pt-4">Policy & Quote Details</h3>
                                 <p><strong>Policy Title:</strong> {selectedApp?.policyTitle || 'N/A'}</p>
                                 {selectedApp?.policyImg && (
@@ -433,7 +441,6 @@ const ManageApplications = () => {
                                 <p><strong>Estimated Monthly Contribution:</strong> <span className="font-bold text-green-600">Tk{Number(selectedApp.quoteDetails?.monthlyContribution).toLocaleString() || 'N/A'}</span></p>
                                 <p><strong>Estimated Annual Contribution:</strong> <span className="font-bold text-green-600">Tk{Number(selectedApp.quoteDetails?.annualContribution).toLocaleString() || 'N/A'}</span></p>
 
-                                {/* Status & Agent */}
                                 <h3 className="font-semibold text-lg border-b pb-2 mb-2 text-green-700 pt-4">Status & Assignment</h3>
                                 <p><strong>Current Status:</strong> <span
                                     className={`px-3 py-1 text-sm font-medium rounded-full ${selectedApp.status === 'Pending'
@@ -446,6 +453,62 @@ const ManageApplications = () => {
                                     {selectedApp.status}
                                 </span></p>
                                 {selectedApp.agentId && <p><strong>Assigned Agent:</strong> {agents.find(a => a._id === selectedApp.agentId)?.name || selectedApp.agentId}</p>}
+                                {selectedApp.status === 'Rejected' && selectedApp.rejectFeedback && (
+                                    <p><strong>Rejection Feedback:</strong> {selectedApp.rejectFeedback}</p>
+                                )}
+                            </div>
+                        </motion.div>
+                    </Dialog>
+                )}
+
+                {/* Modal for rejection feedback */}
+                {isRejectModalOpen && (
+                    <Dialog open={true} onClose={() => setIsRejectModalOpen(false)} className="fixed z-50 inset-0 overflow-y-auto bg-opacity-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            transition={{ duration: 0.3 }}
+                            className="bg-white w-full max-w-md p-6 rounded-2xl shadow-2xl relative"
+                        >
+                            <button
+                                onClick={() => setIsRejectModalOpen(false)}
+                                className="absolute top-4 right-4 text-gray-500 hover:text-red-500 transition"
+                            >
+                                <X size={24} />
+                            </button>
+
+                            <Dialog.Title className="text-2xl font-bold text-gray-800 mb-4">
+                                Provide Rejection Feedback
+                            </Dialog.Title>
+
+                            <div className="space-y-4">
+                                <p className="text-gray-600">Please provide a reason for rejecting this application:</p>
+                                <textarea
+                                    value={rejectFeedback}
+                                    onChange={(e) => setRejectFeedback(e.target.value)}
+                                    className="w-full p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                    rows="4"
+                                    placeholder="Enter reason for rejection..."
+                                />
+                                <div className="flex justify-end gap-2">
+                                    <motion.button
+                                        onClick={() => setIsRejectModalOpen(false)}
+                                        className="px-4 py-2 rounded-md bg-gray-300 text-gray-800 text-sm shadow hover:bg-gray-400"
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                    >
+                                        Cancel
+                                    </motion.button>
+                                    <motion.button
+                                        onClick={handleSubmitRejectFeedback}
+                                        className="px-4 py-2 rounded-md bg-red-500 text-white text-sm shadow hover:bg-red-600"
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                    >
+                                        Submit Rejection
+                                    </motion.button>
+                                </div>
                             </div>
                         </motion.div>
                     </Dialog>

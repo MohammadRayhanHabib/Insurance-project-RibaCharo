@@ -8,6 +8,7 @@ import { motion } from 'framer-motion'; // For animations
 import 'swiper/css';
 import 'swiper/css/pagination';
 import { axiosSecure } from '../../hooks/useAxiosSecure';
+import LoadingSpinner from '../Shared/Spinner/LoadingSpinner';
 
 
 
@@ -74,17 +75,7 @@ const CustomerReviews = () => {
             return res.data.sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
         },
     });
-
-    // --- Conditional Renderings for Loading, Error, Empty States ---
-    if (isLoading) {
-        return (
-            <div className="flex justify-center items-center py-10">
-                <span className="loading loading-spinner loading-lg text-indigo-600"></span>
-                <p className="text-gray-700 ml-3">Loading customer testimonials...</p>
-            </div>
-        );
-    }
-
+    if (isLoading) return <LoadingSpinner></LoadingSpinner>
     if (isError) {
         return (
             <div className="text-center py-10 text-red-500 font-semibold">
@@ -103,7 +94,7 @@ const CustomerReviews = () => {
 
     // --- Main Component Rendering ---
     return (
-        <section className="py-16 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-3xl shadow-xl overflow-hidden">
+        <section className="py-16 mb-10 lg:-mb-40 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-3xl shadow-xl overflow-hidden">
             <div className="container mx-auto px-4">
                 <motion.h2
                     className="text-5xl font-extrabold text-center mb-12 bg-gradient-to-r from-purple-600 to-indigo-700 bg-clip-text text-transparent leading-tight"

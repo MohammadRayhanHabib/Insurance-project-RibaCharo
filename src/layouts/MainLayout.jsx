@@ -1,8 +1,9 @@
 import { Outlet, useNavigation } from 'react-router'
 import Navbar from '../components/Shared/Navbar/Navbar'
-import Footer from '../components/Shared/Footer/Footer'
+
 import useAuth from '../hooks/useAuth';
 import LoadingSpinner from '../components/Shared/Spinner/LoadingSpinner';
+import Footer from '../components/Home/Footer';
 const MainLayout = () => {
     const { loading: authLoading } = useAuth();
     const navigation = useNavigation();
@@ -18,7 +19,7 @@ const MainLayout = () => {
                 )}
 
             </div>
-            <Footer />
+            <Footer></Footer>
         </div>
     )
 }

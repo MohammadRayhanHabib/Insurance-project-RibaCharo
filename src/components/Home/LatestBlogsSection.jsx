@@ -1,18 +1,16 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Helmet } from 'react-helmet';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Dialog } from '@headlessui/react';
-import { X, Calendar, Eye, User, Heart, Sparkles, BookOpen, Coffee } from 'lucide-react';
-import { Link } from 'react-router';
+// Using native modal instead of @headlessui/react Dialog
+import { X, Calendar, Eye, Heart, Sparkles, BookOpen, ArrowRight, Coffee } from 'lucide-react';
 import { axiosSecure } from '../../hooks/useAxiosSecure';
 
-const Blogs = () => {
+const LatestBlogsSection = () => {
     const queryClient = useQueryClient();
     const [selectedBlog, setSelectedBlog] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    // Format date function with cute styling
+    // Format date function
     const formatDate = (dateString) => {
         if (!dateString) return 'N/A';
         try {
@@ -26,15 +24,15 @@ const Blogs = () => {
         }
     };
 
-    // Fetch blogs query
+    // Fetch latest 4 blogs
     const { data: blogs = [], isLoading, error } = useQuery({
-        queryKey: ['blogs'],
+        queryKey: ['latest-blogs'],
         queryFn: async () => {
             try {
-                const res = await axiosSecure.get('/blogs');
+                const res = await axiosSecure.get('/blogs?limit=4&sort=-publishDate');
                 return res.data || [];
             } catch (error) {
-                console.error('Error fetching blogs:', error);
+                console.error('Error fetching latest blogs:', error);
                 throw error;
             }
         },
@@ -54,7 +52,7 @@ const Blogs = () => {
             }
         },
         onSuccess: () => {
-            queryClient.invalidateQueries(['blogs']);
+            queryClient.invalidateQueries(['latest-blogs']);
         },
         onError: (error) => {
             console.error('Failed to update visit count:', error);
@@ -65,7 +63,6 @@ const Blogs = () => {
     const handleReadMore = (blog) => {
         setSelectedBlog(blog);
         setIsModalOpen(true);
-        // Update visit count
         if (blog._id) {
             updateVisitCount.mutate(blog._id);
         }
@@ -78,65 +75,46 @@ const Blogs = () => {
     };
 
     // Truncate text helper
-    const truncateText = (text, maxLength = 100) => {
+    const truncateText = (text, maxLength = 80) => {
         if (!text) return 'No content available...';
         return text.length > maxLength ? text.slice(0, maxLength) + '...' : text;
     };
 
-    // Cute loading state
-    // Cute error state
-    if (error) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-100">
-                <motion.div
-                    className="text-center bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-xl border border-pink-200"
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                >
-                    <div className="text-6xl mb-4">🥺</div>
-                    <p className="text-pink-600 text-xl font-semibold mb-2">Oops! Something went wrong</p>
-                    <p className="text-gray-600 mb-6">{error?.message || 'We couldn\'t load the blogs right now'}</p>
-                    <motion.button
-                        onClick={() => window.location.reload()}
-                        className="px-6 py-3 bg-gradient-to-r from-pink-400 to-purple-500 text-white rounded-full font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                    >
-                        💫 Try Again
-                    </motion.button>
-                </motion.div>
-            </div>
-        );
+    // Navigate to all blogs (you'll need to implement this based on your routing)
+    const handleViewAllBlogs = () => {
+        // Replace with your navigation logic
+        window.location.href = '/blogs';
+        // Or if using React Router: navigate('/blogs');
+    };
+
+
+
+    if (error || blogs.length === 0) {
+        return null; // Hide section if no blogs or error
     }
 
     return (
         <>
-            <Helmet>
-                <title>NeoTakaful | Cute Blogs 💕</title>
-                <meta name="description" content="Read the most adorable blogs and articles from NeoTakaful" />
-            </Helmet>
-
-            {/* Background with floating elements */}
-            <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-100 relative overflow-hidden">
-                {/* Floating decorative elements */}
+            <section className="mt-10 mb-10 rounded-2xl py-16 bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-100 relative overflow-hidden">
+                {/* Floatin g decorative elements */}
                 <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                    {[...Array(6)].map((_, i) => (
+                    {[...Array(4)].map((_, i) => (
                         <motion.div
                             key={i}
-                            className={`absolute ${i % 2 === 0 ? 'text-pink-200' : 'text-purple-200'}`}
+                            className={`absolute text-2xl ${i % 2 === 0 ? 'text-pink-200' : 'text-purple-200'}`}
                             animate={{
-                                y: [-20, -40, -20],
-                                x: [0, 10, 0],
-                                rotate: [0, 5, 0]
+                                y: [-15, -25, -15],
+                                x: [0, 8, 0],
+                                rotate: [0, 3, 0]
                             }}
                             transition={{
-                                duration: 4 + i,
+                                duration: 3 + i,
                                 repeat: Infinity,
-                                delay: i * 0.5
+                                delay: i * 0.7
                             }}
                             style={{
-                                left: `${10 + i * 15}%`,
-                                top: `${10 + i * 12}%`
+                                left: `${15 + i * 20}%`,
+                                top: `${15 + i * 15}%`
                             }}
                         >
                             {i % 3 === 0 ? '✨' : i % 3 === 1 ? '🌸' : '💫'}
@@ -144,21 +122,17 @@ const Blogs = () => {
                     ))}
                 </div>
 
-                <motion.div
-                    className="max-w-7xl mx-auto p-6 relative z-10"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6 }}
-                >
-                    {/* Cute header */}
+                <div className="max-w-7xl mx-auto px-6 relative z-10">
+                    {/* Section Header */}
                     <motion.div
                         className="text-center mb-12"
-                        initial={{ opacity: 0, y: -20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2 }}
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.6 }}
                     >
-                        <motion.h1
-                            className="text-5xl font-black mb-4"
+                        <motion.h2
+                            className="text-4xl font-black mb-4"
                             animate={{
                                 backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
                             }}
@@ -171,173 +145,161 @@ const Blogs = () => {
                                 backgroundClip: 'text'
                             }}
                         >
-                            ✨ Blogs & Stories ✨
-                        </motion.h1>
+                            ✨ Latest Blogs & Stories ✨
+                        </motion.h2>
                         <motion.p
                             className="text-gray-600 text-lg font-medium flex items-center justify-center gap-2"
                             initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 0.4 }}
+                            whileInView={{ opacity: 1 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: 0.2 }}
                         >
                             <Heart className="text-pink-500" size={20} />
-                            Discover magical insights and adorable updates
+                            Fresh magical insights just for you
                             <Sparkles className="text-purple-500" size={20} />
                         </motion.p>
                     </motion.div>
 
-                    {blogs.length === 0 ? (
-                        <motion.div
-                            className="text-center py-20"
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: 0.3 }}
-                        >
-                            <div className="bg-white/70 backdrop-blur-sm rounded-3xl p-12 shadow-xl border border-pink-200 max-w-md mx-auto">
-                                <div className="text-8xl mb-6">📚</div>
-                                <h3 className="text-2xl font-bold text-gray-700 mb-3">No Stories Yet!</h3>
-                                <p className="text-gray-600 mb-2">We're working on some amazing content</p>
-                                <p className="text-sm text-pink-600 font-semibold">✨ Check back soon for magical stories! ✨</p>
-                            </div>
-                        </motion.div>
-                    ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-                            {blogs.map((blog, index) => (
+                    {/* Blog Cards Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-12">
+                        {blogs.map((blog, index) => (
+                            <motion.div
+                                key={blog._id}
+                                className="group"
+                                initial={{ opacity: 0, y: 30 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ duration: 0.5, delay: index * 0.1 }}
+                            >
                                 <motion.div
-                                    key={blog._id}
-                                    className="group"
-                                    initial={{ opacity: 0, y: 30 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                                    className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl transition-all duration-500 border border-pink-100 overflow-hidden relative h-full"
+                                    whileHover={{
+                                        y: -5,
+                                        boxShadow: "0 20px 40px -12px rgba(0, 0, 0, 0.15)"
+                                    }}
+                                    whileTap={{ scale: 0.98 }}
                                 >
-                                    <motion.div
-                                        className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 border border-pink-100 overflow-hidden relative"
-                                        whileHover={{
-                                            y: -8,
-                                            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.15)"
-                                        }}
-                                        whileTap={{ scale: 0.98 }}
-                                    >
-                                        {/* Cute corner decoration */}
-                                        <div className="absolute top-4 left-4 z-10">
-                                            <motion.div
-                                                className="bg-gradient-to-r from-pink-400 to-purple-500 text-white text-xs px-3 py-1 rounded-full font-semibold flex items-center gap-1"
-                                                whileHover={{ scale: 1.1 }}
-                                            >
-                                                <BookOpen size={12} />
-                                                Story
-                                            </motion.div>
-                                        </div>
+                                    {/* Blog Image */}
+                                    <div className="relative overflow-hidden">
+                                        <motion.img
+                                            src={blog.blogImageUrl || 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=300&h=180&fit=crop&crop=entropy&auto=format&q=80'}
+                                            alt={blog.title}
+                                            className="w-full h-40 object-cover"
+                                            whileHover={{ scale: 1.05 }}
+                                            transition={{ duration: 0.3 }}
+                                            onError={(e) => {
+                                                e.target.onerror = null;
+                                                e.target.src = "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=300&h=180&fit=crop&crop=entropy&auto=format&q=80";
+                                            }}
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
 
-                                        {/* Visit count with cute design */}
-                                        <div className="absolute top-4 right-4 z-10">
+                                        {/* Visit count badge */}
+                                        <div className="absolute top-3 right-3">
                                             <motion.div
-                                                className="bg-white/90 backdrop-blur-sm text-gray-700 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 shadow-md"
+                                                className="bg-white/90 backdrop-blur-sm text-gray-700 px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1 shadow-md"
                                                 whileHover={{ scale: 1.1 }}
                                             >
-                                                <Eye size={12} className="text-pink-500" />
+                                                <Eye size={10} className="text-pink-500" />
                                                 <span>{blog.visitCount || 0}</span>
                                             </motion.div>
                                         </div>
+                                    </div>
 
-                                        {/* Blog Image with gradient overlay */}
-                                        <div className="relative overflow-hidden rounded-t-3xl">
-                                            <motion.img
-                                                src={blog.blogImageUrl || 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=400&h=250&fit=crop&crop=entropy&auto=format&q=80'}
-                                                alt={blog.title}
-                                                className="w-full h-52 object-cover"
-                                                whileHover={{ scale: 1.05 }}
-                                                transition={{ duration: 0.3 }}
-                                                onError={(e) => {
-                                                    e.target.onerror = null;
-                                                    e.target.src = "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=400&h=250&fit=crop&crop=entropy&auto=format&q=80";
-                                                }}
-                                            />
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
-                                        </div>
+                                    {/* Blog Content */}
+                                    <div className="p-4 flex flex-col h-[calc(100%-10rem)]">
+                                        <motion.h3
+                                            className="text-lg font-bold text-gray-800 mb-2 line-clamp-2 group-hover:text-pink-600 transition-colors flex-shrink-0"
+                                            initial={{ opacity: 0.8 }}
+                                            whileHover={{ opacity: 1 }}
+                                        >
+                                            {blog.title || 'Untitled Story'}
+                                        </motion.h3>
 
-                                        {/* Blog Content */}
-                                        <div className="p-6">
-                                            <motion.h2
-                                                className="text-xl font-bold text-gray-800 mb-3 line-clamp-2 group-hover:text-pink-600 transition-colors"
-                                                initial={{ opacity: 0.8 }}
-                                                whileHover={{ opacity: 1 }}
-                                            >
-                                                {blog.title || 'Untitled Story'}
-                                            </motion.h2>
+                                        <p className="text-gray-600 mb-3 line-clamp-2 text-sm leading-relaxed flex-grow">
+                                            {truncateText(blog.content, 100)}
+                                        </p>
 
-                                            <p className="text-gray-600 mb-4 line-clamp-3 text-sm leading-relaxed">
-                                                {truncateText(blog.content, 120)}
-                                            </p>
-
-                                            {/* Author info with cute design */}
-                                            <div className="flex items-center mb-6">
-                                                <motion.div
-                                                    className="relative"
-                                                    whileHover={{ scale: 1.1 }}
-                                                >
-                                                    <img
-                                                        src={blog.authorImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(blog.authorName || 'Author')}&background=ec4899&color=fff&size=40&rounded=true`}
-                                                        alt={blog.authorName || 'Author'}
-                                                        className="w-10 h-10 rounded-full border-3 border-pink-200 shadow-md"
-                                                        onError={(e) => {
-                                                            e.target.onerror = null;
-                                                            e.target.src = `https://ui-avatars.com/api/?name=Author&background=ec4899&color=fff&size=40&rounded=true`;
-                                                        }}
-                                                    />
-                                                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white"></div>
-                                                </motion.div>
-                                                <div className="ml-3 flex-1">
-                                                    <p className="text-sm font-semibold text-gray-700">
-                                                        {blog.authorName || 'Anonymous Storyteller'}
-                                                    </p>
-                                                    <div className="flex items-center text-xs text-gray-500">
-                                                        <Calendar size={10} className="mr-1 text-pink-400" />
-                                                        <span>{formatDate(blog.publishDate)}</span>
-                                                    </div>
-                                                </div>
+                                        {/* Author and date info */}
+                                        <div className="flex items-center justify-between mb-3 text-xs text-gray-500">
+                                            <div className="flex items-center">
+                                                <img
+                                                    src={blog.authorImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(blog.authorName || 'Author')}&background=ec4899&color=fff&size=24&rounded=true`}
+                                                    alt={blog.authorName}
+                                                    className="w-5 h-5 rounded-full mr-2"
+                                                />
+                                                <span className="font-medium truncate">{blog.authorName || 'Anonymous'}</span>
                                             </div>
-
-                                            {/* Cute Read More Button */}
-                                            <motion.button
-                                                onClick={() => handleReadMore(blog)}
-                                                className="w-full py-3 px-4 bg-gradient-to-r from-pink-400 via-purple-500 to-indigo-500 text-white rounded-2xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2"
-                                                whileHover={{
-                                                    scale: 1.03,
-                                                    boxShadow: "0 10px 30px rgba(236, 72, 153, 0.3)"
-                                                }}
-                                                whileTap={{ scale: 0.97 }}
-                                                disabled={updateVisitCount.isLoading}
-                                            >
-                                                {updateVisitCount.isLoading ? (
-                                                    <>
-                                                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                                                        Loading...
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <Heart size={16} />
-                                                        Read More
-                                                        <Sparkles size={16} />
-                                                    </>
-                                                )}
-                                            </motion.button>
+                                            <div className="flex items-center">
+                                                <Calendar size={8} className="mr-1 text-pink-400" />
+                                                <span>{formatDate(blog.publishDate)}</span>
+                                            </div>
                                         </div>
-                                    </motion.div>
-                                </motion.div>
-                            ))}
-                        </div>
-                    )}
-                </motion.div>
-            </div>
 
-            {/* Cute Modal */}
+                                        {/* Read More Button */}
+                                        <motion.button
+                                            onClick={() => handleReadMore(blog)}
+                                            className="w-full py-2 px-3 bg-gradient-to-r from-pink-400 via-purple-500 to-indigo-500 text-white rounded-xl font-semibold shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 text-sm"
+                                            whileHover={{
+                                                scale: 1.02,
+                                                boxShadow: "0 8px 25px rgba(236, 72, 153, 0.3)"
+                                            }}
+                                            whileTap={{ scale: 0.98 }}
+                                            disabled={updateVisitCount.isLoading}
+                                        >
+                                            {updateVisitCount.isLoading ? (
+                                                <>
+                                                    <div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent"></div>
+                                                    Loading...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Heart size={12} />
+                                                    Read More
+                                                    <Sparkles size={12} />
+                                                </>
+                                            )}
+                                        </motion.button>
+                                    </div>
+                                </motion.div>
+                            </motion.div>
+                        ))}
+                    </div>
+
+                    {/* View All Blogs Button */}
+                    <motion.div
+                        className="text-center"
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.6, delay: 0.4 }}
+                    >
+                        <motion.button
+                            onClick={handleViewAllBlogs}
+                            className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-pink-500 via-purple-600 to-indigo-600 text-white rounded-2xl font-bold shadow-xl hover:shadow-2xl transition-all duration-300 text-lg"
+                            whileHover={{
+                                scale: 1.05,
+                                boxShadow: "0 15px 35px rgba(236, 72, 153, 0.4)"
+                            }}
+                            whileTap={{ scale: 0.95 }}
+                        >
+                            <BookOpen size={20} />
+                            <span>✨ View All Blogs & Articles ✨</span>
+                            <motion.div
+                                animate={{ x: [0, 5, 0] }}
+                                transition={{ duration: 1.5, repeat: Infinity }}
+                            >
+                                <ArrowRight size={20} />
+                            </motion.div>
+                        </motion.button>
+                    </motion.div>
+                </div>
+            </section>
+
+            {/* Modal for blog details */}
             <AnimatePresence>
                 {isModalOpen && selectedBlog && (
-                    <Dialog
-                        open={isModalOpen}
-                        onClose={closeModal}
-                        className="fixed z-50 inset-0"
-                    >
+                    <div className="fixed z-50 inset-0">
                         <motion.div
                             className="fixed inset-0 bg-black/50 backdrop-blur-md"
                             initial={{ opacity: 0 }}
@@ -354,7 +316,7 @@ const Blogs = () => {
                                 exit={{ opacity: 0, scale: 0.8, y: 50 }}
                                 transition={{ type: "spring", damping: 25, stiffness: 200 }}
                             >
-                                {/* Cute Header */}
+                                {/* Modal Header */}
                                 <div className="sticky top-0 bg-gradient-to-r from-pink-50 to-purple-50 border-b border-pink-200 p-6 rounded-t-3xl z-10">
                                     <div className="flex justify-between items-start">
                                         <div className="flex-1 pr-4">
@@ -434,7 +396,7 @@ const Blogs = () => {
                                         </div>
                                     </motion.div>
 
-                                    {/* Cute Footer */}
+                                    {/* Author Footer */}
                                     <motion.div
                                         className="bg-gradient-to-r from-pink-50 to-purple-50 rounded-3xl p-6 border border-pink-100"
                                         initial={{ opacity: 0, y: 20 }}
@@ -468,11 +430,11 @@ const Blogs = () => {
                                 </div>
                             </motion.div>
                         </div>
-                    </Dialog>
+                    </div>
                 )}
             </AnimatePresence>
         </>
     );
 };
 
-export default Blogs;
+export default LatestBlogsSection;

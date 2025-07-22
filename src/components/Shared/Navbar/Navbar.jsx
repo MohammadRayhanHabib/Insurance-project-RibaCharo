@@ -24,8 +24,8 @@ const Navbar = () => {
         { name: 'Home', path: '/' },
         { name: 'Blogs', path: '/blogs' },
         { name: 'All Policies', path: '/policies' },
-        { name: 'Agents', path: '/agents' },
-        { name: 'FAQs', path: '/faqs' },
+        // { name: 'Agents', path: '/agents' },
+        // { name: 'FAQs', path: '/faqs' },
     ];
 
     const mobileMenuVariants = {

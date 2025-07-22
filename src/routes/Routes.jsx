@@ -26,6 +26,11 @@ import AgentRoute from './AgentRoute'
 import CustomerPaymentStatusPage from '../pages/CustomerPage/CustomerPaymentStatusPage'
 import PaymentPage from '../pages/CustomerPage/PaymentPage'
 import ManageTransactions from '../pages/AdminPage/ManageTransactions'
+import ClaimRequestPage from '../pages/CustomerPage/ClaimRequestPage'
+import PolicyClearance from '../pages/AgentPage/PolicyClearance'
+import ManageBlogsPage from '../pages/ManageBlogsPage/ManageBlogsPage'
+import AdminAgentRoute from './AdminAgentRoute'
+import Forbidden from '../pages/ErrorPage'
 
 
 export const router = createBrowserRouter([
@@ -69,42 +74,7 @@ export const router = createBrowserRouter([
             },
             { path: '/login', Component: Login },
             { path: '/signup', element: <SignUp /> },
-            {
-                path: 'dashboard',
-                element: <PrivateRoute><DashboardLayout /></PrivateRoute>,
-                children: [
-                    // { path: 'profile', element: <ProfilePage /> },
-                    //admin routes
-                    {
-                        index: true,
-                        element: <DashboardHomeRedirect />,
-                    },
-                    {
-                        index: true,
-                        path: 'manage-applications',
-                        element: <AdminRoute><ManageApplications /></AdminRoute>
-                    },
 
-                    { path: 'manage-users', element: <AdminRoute><ManageUsers /></AdminRoute> },
-                    { path: 'manage-policies', element: <AdminRoute><ManagePolicies /></AdminRoute> },
-                    { path: 'manage-transactions', element: <AdminRoute><ManageTransactions /></AdminRoute> },
-                    // Agent Routes
-                    { path: 'assigned-customers', element: <AgentRoute><AssignedCustomers /></AgentRoute> },
-                    // { path: 'manage-blogs', element: <AgentRoute><ManageBlogs /></AgentRoute> },
-                    // { path: 'policy-clearance', element: <AgentRoute><PolicyClearance /></AgentRoute> },
-                    // Customer routes
-
-                    { path: 'my-policies', element: <CustomerRoute><MyPolicies /></CustomerRoute> },
-                    { path: 'payment-status', element: <CustomerRoute><CustomerPaymentStatusPage></CustomerPaymentStatusPage></CustomerRoute> },
-                    {
-
-
-                    }
-                    // { path: 'claim-request', element: <CustomerRoute><ClaimRequest /></CustomerRoute> },
-                    // { path: '', element: <Navigate to="profile" /> }, // Default route
-                ],
-
-            },
             {
                 path: "/payment/:applicationId",
                 element: <PaymentPage></PaymentPage>
@@ -114,6 +84,68 @@ export const router = createBrowserRouter([
 
         ],
     },
+    {
+        path: 'dashboard',
+        element: <PrivateRoute><DashboardLayout /></PrivateRoute>,
+        children: [
+            // { path: 'profile', element: <ProfilePage /> },
+            //admin routes
+            {
+                index: true,
+                element: <DashboardHomeRedirect />,
+            },
+            {
+                index: true,
+                path: 'manage-applications',
+                element: <AdminRoute><ManageApplications /></AdminRoute>
+            },
+
+            { path: 'manage-users', element: <AdminRoute><ManageUsers /></AdminRoute> },
+            { path: 'manage-policies', element: <AdminRoute><ManagePolicies /></AdminRoute> },
+            { path: 'manage-transactions', element: <AdminRoute><ManageTransactions /></AdminRoute> },
+            // Agent Routes
+            { path: 'assigned-customers', element: <AgentRoute><AssignedCustomers /></AgentRoute> },
+            // { path: 'manage-blogs', element: <AgentRoute><ManageBlogs /></AgentRoute> },
+            {
+                path: 'policy-clearance', element: <AgentRoute>
+
+                    <PolicyClearance></PolicyClearance>
+                </AgentRoute>
+            },
+            // Customer routes
+
+            { path: 'my-policies', element: <CustomerRoute><MyPolicies /></CustomerRoute> },
+            { path: 'payment-status', element: <CustomerRoute><CustomerPaymentStatusPage></CustomerPaymentStatusPage></CustomerRoute> },
+            {
+
+
+            },
+            {
+                path: 'claim-request', element: <CustomerRoute>
+                    <ClaimRequestPage></ClaimRequestPage>
+                </CustomerRoute>
+            },
+            // { path: '', element: <Navigate to="profile" /> }, // Default route
+            {
+                path: 'manage-blogs',
+                element: <PrivateRoute>
+                    <AdminAgentRoute>
+
+                        <ManageBlogsPage></ManageBlogsPage>
+                    </AdminAgentRoute>
+                </PrivateRoute>
+
+
+            },
+            {
+                path: "forbidden",
+                element: <Forbidden></Forbidden>
+            }
+        ],
+
+
+    },
+
 
 
 

@@ -1,495 +1,540 @@
-import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Helmet } from 'react-helmet';
+import { Loader2, X, Info } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { Dialog } from '@headlessui/react';
-import { Star, X } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { axiosSecure } from '../../hooks/useAxiosSecure';
-import useAuth from '../../hooks/useAuth';
-import jsPDF from 'jspdf';
 import Swal from 'sweetalert2';
-export default function MyPoliciesPage() {
-    const { user } = useAuth();
-    const [selectedPolicy, setSelectedPolicy] = useState(null);
-    const [isOpen, setIsOpen] = useState(false);
-    const [detailsOpen, setDetailsOpen] = useState(false);
-    const [rating, setRating] = useState(0);
-    const [feedback, setFeedback] = useState('');
 
-    const { data: applications = [], isLoading: isLoadingApplications } = useQuery({
-        queryKey: ['myPolicies', user?.email],
+const ManageApplications = () => {
+    const queryClient = useQueryClient();
+    const [selectedApp, setSelectedApp] = useState(null);
+    const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+    const [rejectFeedback, setRejectFeedback] = useState('');
+    const [rejectAppId, setRejectAppId] = useState(null);
+
+    const { data: applications = [], isLoading, error } = useQuery({
+        queryKey: ['applications'],
         queryFn: async () => {
-            const res = await axiosSecure.get(`/applications/user/${user?.email}`);
-            return res.data;
+            const res = await axiosSecure.get('/applications');
+            return res.data || [];
         },
-        enabled: !!user?.email,
     });
 
-    // Fetch individual policy details based on policyId from applications
-    const { data: policies = {}, isLoading: isLoadingPolicies } = useQuery({
-        queryKey: ['policies', applications.map(app => app.policyId)], // Use policy IDs as part of the query key
+    const { data: agents = [] } = useQuery({
+        queryKey: ['agents'],
         queryFn: async () => {
-            const policyDetails = {};
-            for (const app of applications) {
-                if (app.policyId && !policyDetails[app.policyId]) { // Fetch only if not already fetched
-                    try {
-                        const res = await axiosSecure.get(`/policies/${app.policyId}`);
-                        policyDetails[app.policyId] = res.data;
-                    } catch (error) {
-                        console.error(`Failed to fetch policy with ID ${app.policyId}:`, error);
-                        policyDetails[app.policyId] = null; // Mark as null if fetch fails
-                    }
-                }
+            const res = await axiosSecure.get('/agents');
+            return res.data || [];
+        },
+    });
+
+    const updateApplication = useMutation({
+        mutationFn: async ({ id, updatesForApplicationUpdate, agentIdForDataForAgents }) => {
+            const res = await axiosSecure.patch(`/applicationUpdate/${id}`, updatesForApplicationUpdate);
+            return {
+                patchResult: res.data,
+                originalUpdates: updatesForApplicationUpdate,
+                applicationId: id,
+                agentIdForDataForAgents: agentIdForDataForAgents
+            };
+        },
+        onSuccess: async (data) => {
+            queryClient.invalidateQueries(['applications']);
+
+            const { originalUpdates, applicationId, agentIdForDataForAgents } = data;
+
+            let fullApplicationData = null;
+            try {
+                const fetchRes = await axiosSecure.get(`/applications/${applicationId}`);
+                fullApplicationData = fetchRes.data;
+            } catch (fetchError) {
+                console.error('Error fetching full application data after update:', fetchError.message);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Update Failed!',
+                    text: 'Could not fetch full application details for agent assignment.',
+                });
+                setSelectedApp(null);
+                setIsRejectModalOpen(false);
+                return;
             }
-            return policyDetails;
+
+            if (agentIdForDataForAgents && fullApplicationData) {
+                const assignedAgent = agents.find(agent => agent._id === agentIdForDataForAgents);
+
+                const agentAssignmentData = {
+                    applicationId: fullApplicationData._id,
+                    agentId: agentIdForDataForAgents,
+                    agentName: assignedAgent?.name || 'Unknown Agent',
+                    agentEmail: assignedAgent?.email || 'Unknown Email',
+                    customerName: fullApplicationData.personal?.name,
+                    customerEmail: fullApplicationData.personal?.email,
+                    policyTitle: fullApplicationData.policyTitle,
+                    policyId: fullApplicationData.policyId,
+                    assignedAt: new Date().toISOString(),
+                    personal: fullApplicationData.personal,
+                    nominee: fullApplicationData.nominee,
+                    healthDisclosure: fullApplicationData.healthDisclosure,
+                    policyImg: fullApplicationData.policyImg,
+                    quoteDetails: fullApplicationData.quoteDetails,
+                };
+
+                try {
+                    await axiosSecure.post('/dataForAgents', agentAssignmentData);
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Application Approved and Agent Assigned!',
+                        text: `Application ${applicationId} has been approved and assigned to ${assignedAgent?.name || 'an agent'}.`,
+                        timer: 2000,
+                        showConfirmButton: false,
+                    });
+                } catch (assignError) {
+                    console.error('Error recording agent assignment in dataForAgents:', assignError.message);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Assignment Failed!',
+                        text: 'Could not record agent assignment. Please try again.',
+                    });
+                }
+            } else if (originalUpdates.status === 'Rejected') {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Application Rejected!',
+                    text: `Application ${applicationId} has been rejected. Feedback: ${originalUpdates.rejectFeedback || 'No feedback provided.'}`,
+                    timer: 2000,
+                    showConfirmButton: false,
+                });
+            } else if (originalUpdates.status === 'Approved') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Application Approved!',
+                    text: `Application ${applicationId} has been approved.`,
+                    timer: 2000,
+                    showConfirmButton: false,
+                });
+            }
+
+            setSelectedApp(null);
+            setIsRejectModalOpen(false);
+            setRejectFeedback('');
         },
-        enabled: applications.length > 0, // Only enable if there are applications
+        onError: (mutationError) => {
+            console.error('Mutation error:', mutationError.message);
+            Swal.fire({
+                icon: 'error',
+                title: 'Operation Failed!',
+                text: `Failed to update application: ${mutationError.message}`,
+            });
+            setIsRejectModalOpen(false);
+            setRejectFeedback('');
+        },
     });
 
-    const handleReview = (policy) => {
-        setSelectedPolicy(policy);
-        setIsOpen(true);
-    };
+    const handleAssignAgentInRow = (appId, agentId, currentStatus) => {
+        if (!agentId) return;
 
-    const submitReview = async () => {
-        const reviewData = {
-            userName: user?.displayName,
-            userEmail: user?.email,
-            userImg: user?.photoURL,
-            policyId: selectedPolicy?.policyId,
-            rating,
-            feedback,
-            date: new Date(),
-        };
-        try {
-            await axiosSecure.post('/reviews', reviewData);
-
-            setIsOpen(false);
-            setRating(0);
-            setFeedback('');
+        if (currentStatus === 'Approved' || currentStatus === 'Rejected') {
             Swal.fire({
-                toast: 'true',
-                position: "top-end",
-                icon: "success",
-                title: "Review added",
-                showConfirmButton: false,
-                timer: 1500
+                icon: 'warning',
+                title: 'Action Not Allowed',
+                text: `Cannot assign agent to application ${appId}: status is already ${currentStatus}.`,
             });
-            // Optionally, you might want to refetch applications to update the UI
-            // queryClient.invalidateQueries(['myPolicies', user?.email]);
-        } catch (err) {
-            console.error('Review submission failed:', err);
-            Swal.fire({
-                position: "top-end",
-                icon: "warning",
-                title: "Failed to add",
-                showConfirmButton: false,
-                timer: 1500
-            });
-        }
-    };
-
-    const generatePDF = (application) => {
-        const doc = new jsPDF();
-        const policy = policies[application.policyId]; // Get the policy details
-
-        doc.text('Life Insurance Policy', 14, 20);
-        doc.setFontSize(12);
-
-        doc.text(`Applicant: ${application?.personal?.name || 'N/A'}`, 14, 40);
-        doc.text(`Email: ${application?.personal?.email || 'N/A'}`, 14, 50);
-        doc.text(`Policy Title: ${application?.policyTitle || 'N/A'}`, 14, 60);
-        doc.text(`Status: ${application?.status || 'N/A'}`, 14, 70);
-        doc.text(
-            `Nominee: ${application?.nominee?.name || 'N/A'} (${application?.nominee?.relationship || 'N/A'})`,
-            14,
-            80
-        );
-        doc.text(
-            `Created At: ${application?.createdAt ? new Date(application.createdAt).toLocaleDateString() : 'N/A'}`,
-            14,
-            90
-        );
-
-        // Add policy details if available
-        if (policy) {
-            doc.text('--- Policy Details ---', 14, 110);
-            doc.text(`Category: ${policy.category || 'N/A'}`, 14, 120);
-            doc.text(`Description: ${policy.description || 'N/A'}`, 14, 130);
-            doc.text(`Min Age: ${policy.minAge || 'N/A'}`, 14, 140);
-            doc.text(`Max Age: ${policy.maxAge || 'N/A'}`, 14, 150);
-            doc.text(`Coverage Range: ${policy.coverageRange || 'N/A'}`, 14, 160);
-            doc.text(`Duration Options: ${policy.durationOptions?.join(', ') || 'N/A'}`, 14, 170);
-            doc.text(`Base Premium Rate: ${policy.basePremiumRate || 'N/A'}`, 14, 180);
-            doc.text(`Benefits: ${policy.benefits?.join(', ') || 'N/A'}`, 14, 190);
-            doc.text(`Eligibility: ${policy.eligibility || 'N/A'}`, 14, 200);
-            doc.text(`Premium Logic Note: ${policy.premiumLogicNote || 'N/A'}`, 14, 210);
-        } else {
-            doc.text('Policy details not available.', 14, 110);
+            return;
         }
 
-        doc.save(`${application?.policyTitle?.replace(/\s+/g, '_') || 'policy'}.pdf`);
+        updateApplication.mutate({
+            id: appId,
+            updatesForApplicationUpdate: { paymentStatus: 'Due', agentId: agentId },
+            agentIdForDataForAgents: agentId
+        });
     };
 
-    if (isLoadingApplications || isLoadingPolicies) {
-        return <div>Loading...</div>;
+    const handleRejectInRow = (appId, currentStatus) => {
+        if (currentStatus === 'Approved' || currentStatus === 'Rejected') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Action Not Allowed',
+                text: `Cannot reject application ${appId}: status is already ${currentStatus}.`,
+            });
+            return;
+        }
+        setRejectAppId(appId);
+        setIsRejectModalOpen(true);
+    };
+
+    const handleSubmitRejectFeedback = () => {
+        if (!rejectFeedback.trim()) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Feedback Required',
+                text: 'Please provide a reason for rejecting the application.',
+            });
+            return;
+        }
+
+        updateApplication.mutate({
+            id: rejectAppId,
+            updatesForApplicationUpdate: { status: 'Rejected', rejectFeedback: rejectFeedback.trim() },
+            agentIdForDataForAgents: null
+        });
+    };
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                <Loader2 className="h-10 w-10 animate-spin text-teal-500" />
+                <p className="text-gray-600 ml-3 text-lg">Loading applications...</p>
+            </div>
+        );
+    }
+
+    if (error) {
+        return <p className="text-red-600 text-center">Error fetching applications: {error.message}</p>;
     }
 
     return (
-        <motion.div
-            className="max-w-7xl mx-auto p-6 bg-white rounded-3xl shadow-2xl"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-        >
-            <h1 className="text-4xl font-extrabold bg-gradient-to-r from-green-600 to-teal-500 bg-clip-text text-transparent mb-6">
-                My Policies
-            </h1>
+        <>
+            <Helmet>
+                <title>Manage Applications</title>
+            </Helmet>
 
-            {/* Desktop Table */}
-            <div className="overflow-x-auto rounded-xl border hidden md:block">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                        <tr>
-                            {/* Headers */}
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applicant</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Policy</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submit Review</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Download Policy</th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {applications.map((app) => (
-                            <motion.tr key={app._id} className="hover:bg-gray-50 transition-colors duration-300">
-                                <td className="px-4 py-3 whitespace-nowrap">
-                                    <motion.img
-                                        src={app.policyImg || '/default-policy.jpg'}
-                                        alt={app.policyTitle}
-                                        className="w-16 h-16 rounded-xl object-cover border-2 border-teal-500 hover:border-teal-600 transition-all duration-200"
-                                        whileHover={{ scale: 1.1 }}
-                                    />
-                                </td>
-                                <td className="px-4 py-3 whitespace-nowrap text-gray-800">{app.personal?.name || 'N/A'}</td>
-                                <td className="px-4 py-3 whitespace-nowrap text-gray-800">{app.policyTitle}</td>
-                                <td className="px-4 py-3 whitespace-nowrap">
-                                    <span
-                                        className={`px-3 py-1 text-sm font-medium rounded-full ${app.status === 'Approved'
-                                            ? 'bg-green-100 text-green-800'
-                                            : app.status === 'Rejected'
-                                                ? 'bg-red-100 text-red-800'
-                                                : 'bg-yellow-100 text-yellow-800'
-                                            }`}
+            <motion.div
+                className="max-w-7xl mx-auto p-4 sm:p-6 bg-white rounded-3xl shadow-2xl"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+            >
+                <h1 className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-green-600 to-teal-500 bg-clip-text text-transparent mb-6">
+                    Manage Applications
+                </h1>
+
+                {applications.length === 0 ? (
+                    <p className="text-center text-gray-600 text-lg py-10">No new applications to manage.</p>
+                ) : (
+                    <>
+                        {/* Desktop Table */}
+                        <div className="overflow-x-auto hidden md:block">
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="px-3 py-3 text-left text-xs sm:px-4 sm:text-sm font-semibold text-gray-700 whitespace-nowrap">Applicant</th>
+                                        <th className="px-3 py-3 text-left text-xs sm:px-4 sm:text-sm font-semibold text-gray-700 whitespace-nowrap">Email</th>
+                                        <th className="px-3 py-3 text-left text-xs sm:px-4 sm:text-sm font-semibold text-gray-700 whitespace-nowrap">Policy</th>
+                                        <th className="px-3 py-3 text-left text-xs sm:px-4 sm:text-sm font-semibold text-gray-700 whitespace-nowrap">Date</th>
+                                        <th className="px-3 py-3 text-left text-xs sm:px-4 sm:text-sm font-semibold text-gray-700 whitespace-nowrap">Status</th>
+                                        <th className="px-3 py-3 text-left text-xs sm:px-4 sm:text-sm font-semibold text-gray-700 whitespace-nowrap">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {applications.map(app => (
+                                        <tr key={app._id} className="hover:bg-gray-50 transition-all">
+                                            <td className="px-3 py-4 flex items-center gap-2 sm:px-4">
+                                                <img src={app.personal?.userImg || `https://placehold.co/40x40/E0F2F7/000?text=${app.personal?.name?.charAt(0) || 'U'}`} alt={app.personal?.name || 'User'} className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border border-teal-500" />
+                                                <span className="text-sm sm:text-base whitespace-nowrap">{app.personal?.name}</span>
+                                            </td>
+                                            <td className="px-3 py-4 text-xs sm:px-4 sm:text-sm truncate">{app.personal?.email}</td>
+                                            <td className="px-3 py-4 text-xs sm:px-4 sm:text-sm whitespace-nowrap">{app.policyTitle}</td>
+                                            <td className="px-3 py-4 text-xs sm:px-4 sm:text-sm whitespace-nowrap">{new Date(app.createdAt).toLocaleDateString()}</td>
+                                            <td className="px-3 py-4 sm:px-4">
+                                                <div className="flex items-center gap-2">
+                                                    <span
+                                                        className={`px-2 py-0.5 text-xs sm:px-3 sm:py-1 sm:text-sm font-medium rounded-full ${app.status === 'Pending'
+                                                            ? 'bg-yellow-100 text-yellow-800'
+                                                            : app.status === 'Approved' || app.status === 'Assigned'
+                                                                ? 'bg-green-100 text-green-800'
+                                                                : 'bg-red-100 text-red-800'
+                                                            }`}
+                                                    >
+                                                        {app.status}
+                                                    </span>
+                                                    {app.status === 'Rejected' && app.rejectFeedback && (
+                                                        <div className="relative group">
+                                                            <Info className="w-4 h-4 text-red-500 cursor-pointer" />
+                                                            <div className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8 left-1/2 transform -translate-x-1/2 whitespace-nowrap">
+                                                                {app.rejectFeedback}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td className="px-3 py-4 sm:px-4">
+                                                <div className="flex flex-col sm:flex-row flex-wrap gap-2 items-stretch sm:items-center">
+                                                    <select
+                                                        value={app.agentId || ''}
+                                                        onChange={(e) => handleAssignAgentInRow(app._id, e.target.value, app.status)}
+                                                        className="flex-grow px-2 py-1 border rounded-md text-xs sm:text-sm focus:ring-blue-500 focus:border-blue-500 min-w-[100px] sm:min-w-[120px]"
+                                                        disabled={app.status === 'Approved' || app.status === 'Rejected' || updateApplication.isLoading}
+                                                    >
+                                                        <option value="">
+                                                            {app.agentId ? `Assigned: ${agents.find(a => a._id === app.agentId)?.name || 'Unknown Agent'}` : 'Assign Agent'}
+                                                        </option>
+                                                        {agents.map(agent => (
+                                                            <option key={agent._id} value={agent._id}>{agent.name}</option>
+                                                        ))}
+                                                    </select>
+
+                                                    <motion.button
+                                                        onClick={() => handleRejectInRow(app._id, app.status)}
+                                                        className="flex-grow px-2 py-1 rounded-md bg-red-500 text-white text-xs sm:text-sm shadow hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                                                        whileHover={{ scale: 1.05 }}
+                                                        whileTap={{ scale: 0.95 }}
+                                                        disabled={app.status === 'Approved' || app.status === 'Rejected' || updateApplication.isLoading}
+                                                    >
+                                                        Reject
+                                                    </motion.button>
+
+                                                    <motion.button
+                                                        onClick={() => setSelectedApp(app)}
+                                                        className="flex-grow px-2 py-1 rounded-md bg-blue-500 text-white text-xs sm:text-sm shadow hover:bg-blue-600 whitespace-nowrap"
+                                                        whileHover={{ scale: 1.05 }}
+                                                        whileTap={{ scale: 0.95 }}
+                                                    >
+                                                        Details
+                                                    </motion.button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Mobile Card Layout */}
+                        <div className="md:hidden flex flex-col gap-3">
+                            {applications.map(app => {
+                                const isApprovedOrRejected = app.status === 'Approved' || app.status === 'Rejected';
+
+                                return (
+                                    <motion.div
+                                        key={app._id}
+                                        whileHover={!isApprovedOrRejected ? { scale: 1.02 } : {}}
+                                        whileTap={!isApprovedOrRejected ? { scale: 0.98 } : {}}
+                                        onClick={!isApprovedOrRejected ? () => setSelectedApp(app) : undefined}
+                                        className={`w-full p-4 rounded-2xl shadow-md border flex flex-col gap-2 transition-all ${isApprovedOrRejected
+                                            ? 'bg-gray-100 cursor-not-allowed opacity-80'
+                                            : 'bg-white hover:shadow-lg'}`}
                                     >
-                                        {app.status}
-                                    </span>
-                                </td>
-                                <td className="px-4 py-3 whitespace-nowrap">
+                                        <div className="flex items-center gap-3">
+                                            <img
+                                                src={app.personal?.userImg || `https://placehold.co/56x56/E0F2F7/000?text=${app.personal?.name?.charAt(0) || 'U'}`}
+                                                alt={app.personal?.name || 'User'}
+                                                className="w-14 h-14 rounded-full border-2 border-green-500 shadow-md"
+                                            />
+                                            <div className="flex-1 text-left">
+                                                <p className="font-semibold text-lg text-gray-800">{app.personal?.name}</p>
+                                                <p className="text-sm text-gray-500 break-all">{app.personal?.email}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-100">
+                                            <div className="flex items-center gap-2">
+                                                <span
+                                                    className={`text-sm px-3 py-1 rounded-full capitalize font-medium ${app.status === 'Pending'
+                                                        ? 'bg-yellow-100 text-yellow-800'
+                                                        : app.status === 'Approved' || app.status === 'Assigned'
+                                                            ? 'bg-green-100 text-green-800'
+                                                            : 'bg-red-100 text-red-800'
+                                                        }`}
+                                                >
+                                                    {app.status}
+                                                </span>
+                                                {app.status === 'Rejected' && app.rejectFeedback && (
+                                                    <div className="relative group">
+                                                        <Info className="w-4 h-4 text-red-500 cursor-pointer" />
+                                                        <div className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8 left-1/2 transform -translate-x-1/2 whitespace-nowrap">
+                                                            {app.rejectFeedback}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <span className="text-sm text-gray-500 whitespace-nowrap">
+                                                Applied: {new Date(app.createdAt).toLocaleDateString()}
+                                            </span>
+                                        </div>
+                                        <div className="mt-2 text-sm text-gray-600">
+                                            <p><strong>Policy:</strong> {app.policyTitle}</p>
+                                        </div>
+
+                                        <div className="flex flex-wrap gap-2 mt-3">
+                                            <select
+                                                value={app.agentId || ''}
+                                                onChange={(e) => handleAssignAgentInRow(app._id, e.target.value, app.status)}
+                                                className="flex-grow px-2 py-1 border rounded-md text-xs focus:ring-blue-500 focus:border-blue-500"
+                                                disabled={isApprovedOrRejected || updateApplication.isLoading}
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                <option value="">
+                                                    {app.agentId ? `Assigned: ${agents.find(a => a._id === app.agentId)?.name || 'Unknown Agent'}` : 'Assign Agent'}
+                                                </option>
+                                                {agents.map(agent => (
+                                                    <option key={agent._id} value={agent._id}>{agent.name}</option>
+                                                ))}
+                                            </select>
+
+                                            <motion.button
+                                                onClick={(e) => { e.stopPropagation(); handleRejectInRow(app._id, app.status); }}
+                                                className="flex-grow px-2 py-1 rounded-md bg-red-500 text-white text-xs shadow hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                                                whileHover={{ scale: 1.05 }}
+                                                whileTap={{ scale: 0.95 }}
+                                                disabled={isApprovedOrRejected || updateApplication.isLoading}
+                                            >
+                                                Reject
+                                            </motion.button>
+
+                                            <motion.button
+                                                onClick={(e) => { e.stopPropagation(); setSelectedApp(app); }}
+                                                className="flex-grow px-2 py-1 rounded-md bg-blue-500 text-white text-xs shadow hover:bg-blue-600 whitespace-nowrap"
+                                                whileHover={{ scale: 1.05 }}
+                                                whileTap={{ scale: 0.95 }}
+                                            >
+                                                Details
+                                            </motion.button>
+                                        </div>
+                                    </motion.div>
+                                );
+                            })}
+                        </div>
+                    </>
+                )}
+
+                {/* Modal for application details */}
+                {selectedApp && (
+                    <Dialog open={true} onClose={() => setSelectedApp(null)} className="fixed z-50 inset-0 overflow-y-auto bg-opacity-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            transition={{ duration: 0.3 }}
+                            className="bg-white w-full max-w-lg p-6 rounded-2xl shadow-2xl relative max-h-[80vh] overflow-y-auto"
+                        >
+                            <button
+                                onClick={() => setSelectedApp(null)}
+                                className="absolute top-4 right-4 text-gray-500 hover:text-red-500 transition"
+                            >
+                                <X size={24} />
+                            </button>
+
+                            <Dialog.Title className="text-2xl font-bold text-gray-800 mb-4 sticky top-0 bg-white z-10 py-2">
+                                {selectedApp?.personal?.name}'s Application Details
+                            </Dialog.Title>
+
+                            <div className="space-y-4 text-gray-700 text-sm sm:text-base">
+                                <h3 className="font-semibold text-lg border-b pb-2 mb-2 text-green-700">Applicant Information</h3>
+                                <div className="flex items-center gap-3 mb-4">
+                                    <img
+                                        src={selectedApp.personal?.userImg || `https://placehold.co/60x60/E0F2F7/000?text=${selectedApp.personal?.name?.charAt(0) || 'U'}`}
+                                        alt={selectedApp.personal?.name || 'User'}
+                                        className="w-16 h-16 rounded-full border-2 border-teal-500 object-cover"
+                                    />
+                                    <div>
+                                        <p className="font-medium text-gray-900">{selectedApp?.personal?.name}</p>
+                                        <p className="text-sm text-gray-600">{selectedApp?.personal?.email}</p>
+                                    </div>
+                                </div>
+                                <p><strong>Phone:</strong> {selectedApp?.personal?.phone || 'N/A'}</p>
+                                <p><strong>Address:</strong> {selectedApp?.personal?.address || 'N/A'}</p>
+                                <p><strong>NID:</strong> {selectedApp?.personal?.nid || 'N/A'}</p>
+
+                                <h3 className="font-semibold text-lg border-b pb-2 mb-2 text-green-700 pt-4">Nominee Details</h3>
+                                <p><strong>Name:</strong> {selectedApp?.nominee?.name || 'N/A'}</p>
+                                <p><strong>Relationship:</strong> {selectedApp?.nominee?.relationship || 'N/A'}</p>
+
+                                <h3 className="font-semibold text-lg border-b pb-2 mb-2 text-green-700 pt-4">Health Disclosure</h3>
+                                <p>{selectedApp?.healthDisclosure?.length > 0 ? selectedApp.healthDisclosure.join(', ') : 'None'}</p>
+
+                                <h3 className="font-semibold text-lg border-b pb-2 mb-2 text-green-700 pt-4">Policy & Quote Details</h3>
+                                <p><strong>Policy Title:</strong> {selectedApp?.policyTitle || 'N/A'}</p>
+                                {selectedApp?.policyImg && (
+                                    <img src={selectedApp.policyImg} alt="Policy" className="rounded-xl w-full h-32 object-cover border mt-2" />
+                                )}
+                                <p><strong>Applied Date:</strong> {new Date(selectedApp.createdAt).toLocaleDateString()}</p>
+                                <p><strong>Age at Application:</strong> {selectedApp.quoteDetails?.age || 'N/A'}</p>
+                                <p><strong>Gender:</strong> {selectedApp.quoteDetails?.gender || 'N/A'}</p>
+                                <p><strong>Coverage Amount:</strong> Tk{Number(selectedApp.quoteDetails?.coverageAmount).toLocaleString() || 'N/A'}</p>
+                                <p><strong>Duration:</strong> {selectedApp.quoteDetails?.duration || 'N/A'} Years</p>
+                                <p><strong>Smoker Status:</strong> {selectedApp.quoteDetails?.smoker || 'N/A'}</p>
+                                <p><strong>Estimated Monthly Contribution:</strong> <span className="font-bold text-green-600">Tk{Number(selectedApp.quoteDetails?.monthlyContribution).toLocaleString() || 'N/A'}</span></p>
+                                <p><strong>Estimated Annual Contribution:</strong> <span className="font-bold text-green-600">Tk{Number(selectedApp.quoteDetails?.annualContribution).toLocaleString() || 'N/A'}</span></p>
+
+                                <h3 className="font-semibold text-lg border-b pb-2 mb-2 text-green-700 pt-4">Status & Assignment</h3>
+                                <p><strong>Current Status:</strong> <span
+                                    className={`px-3 py-1 text-sm font-medium rounded-full ${selectedApp.status === 'Pending'
+                                        ? 'bg-yellow-100 text-yellow-800'
+                                        : selectedApp.status === 'Approved' || selectedApp.status === 'Assigned'
+                                            ? 'bg-green-100 text-green-800'
+                                            : 'bg-red-100 text-red-800'
+                                        }`}
+                                >
+                                    {selectedApp.status}
+                                </span></p>
+                                {selectedApp.agentId && <p><strong>Assigned Agent:</strong> {agents.find(a => a._id === selectedApp.agentId)?.name || selectedApp.agentId}</p>}
+                                {selectedApp.status === 'Rejected' && selectedApp.rejectFeedback && (
+                                    <div className="flex items-center gap-2">
+                                        <p><strong>Rejection Feedback:</strong> {selectedApp.rejectFeedback}</p>
+                                        <Info className="w-4 h-4 text-red-500 cursor-pointer" title={selectedApp.rejectFeedback} />
+                                    </div>
+                                )}
+                            </div>
+                        </motion.div>
+                    </Dialog>
+                )}
+
+                {/* Modal for rejection feedback */}
+                {isRejectModalOpen && (
+                    <Dialog open={true} onClose={() => setIsRejectModalOpen(false)} className="fixed z-50 inset-0 overflow-y-auto bg-opacity-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            transition={{ duration: 0.3 }}
+                            className="bg-white w-full max-w-md p-6 rounded-2xl shadow-2xl relative max-h-[80vh] overflow-y-auto"
+                        >
+                            <button
+                                onClick={() => setIsRejectModalOpen(false)}
+                                className="absolute top-4 right-4 text-gray-500 hover:text-red-500 transition"
+                            >
+                                <X size={24} />
+                            </button>
+
+                            <Dialog.Title className="text-2xl font-bold text-gray-800 mb-4 sticky top-0 bg-white z-10 py-2">
+                                Provide Rejection Feedback
+                            </Dialog.Title>
+
+                            <div className="space-y-4">
+                                <p className="text-gray-600">Please provide a reason for rejecting this application:</p>
+                                <textarea
+                                    value={rejectFeedback}
+                                    onChange={(e) => setRejectFeedback(e.target.value)}
+                                    className="w-full p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                    rows="4"
+                                    placeholder="Enter reason for rejection..."
+                                />
+                                <div className="flex justify-end gap-2">
                                     <motion.button
-                                        onClick={() => {
-                                            setSelectedPolicy(app);
-                                            setDetailsOpen(true);
-                                        }}
-                                        className="px-3 py-1.5 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl shadow-lg hover:shadow-xl hover:from-blue-600 hover:to-cyan-600 transition-all duration-300 text-sm"
+                                        onClick={() => setIsRejectModalOpen(false)}
+                                        className="px-4 py-2 rounded-md bg-gray-300 text-gray-800 text-sm shadow hover:bg-gray-400"
                                         whileHover={{ scale: 1.05 }}
                                         whileTap={{ scale: 0.95 }}
                                     >
-                                        Details
+                                        Cancel
                                     </motion.button>
-                                </td>
-                                <td className="px-4 py-3 whitespace-nowrap">
-                                    {/* Submit Review Button Logic */}
-                                    {(app.status === 'Approved' || app.status === 'Pending') ? (
-                                        <motion.button
-                                            onClick={() => handleReview(app)}
-                                            className={`px-3 py-1.5 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-xl shadow-lg transition-all duration-300 text-sm ${app.status === 'Pending' ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-xl hover:from-purple-600 hover:to-indigo-600'
-                                                }`}
-                                            whileHover={app.status === 'Approved' ? { scale: 1.05 } : {}}
-                                            whileTap={app.status === 'Approved' ? { scale: 0.95 } : {}}
-                                            disabled={app.status === 'Pending'}
-                                        >
-                                            Submit Review
-                                        </motion.button>
-                                    ) : (
-                                        <span className="text-gray-400 italic text-sm">N/A</span>
-                                    )}
-                                </td>
-                                <td className="px-4 py-3 whitespace-nowrap">
-                                    {/* Download Policy Button Logic */}
                                     <motion.button
-                                        onClick={() => generatePDF(app)}
-                                        className={`px-3 py-1.5 bg-gradient-to-r from-green-500 to-teal-500 text-white rounded-xl shadow-lg transition-all duration-300 text-sm ${app.status !== 'Approved' ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-xl hover:from-green-600 hover:to-teal-600'
-                                            }`}
-                                        whileHover={app.status === 'Approved' ? { scale: 1.05 } : {}}
-                                        whileTap={app.status === 'Approved' ? { scale: 0.95 } : {}}
-                                        disabled={app.status !== 'Approved'}
-                                    >
-                                        Download Policy
-                                    </motion.button>
-                                </td>
-                            </motion.tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-
-            {/* Mobile Card View */}
-            <div className="md:hidden flex flex-col gap-4">
-                {applications.map((app) => (
-                    <motion.div
-                        key={app._id}
-                        className="bg-white rounded-2xl shadow-lg border border-gray-100 p-4 flex flex-col gap-3"
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3 }}
-                        whileHover={{ scale: 1.02, boxShadow: '0 10px 15px rgba(0,0,0,0.05)' }}
-                    >
-                        <div className="flex items-center gap-4">
-                            <motion.img
-                                src={app.policyImg || '/default-policy.jpg'}
-                                alt={app.policyTitle}
-                                className="w-20 h-20 rounded-xl object-cover border-2 border-teal-500"
-                                whileHover={{ scale: 1.05 }}
-                            />
-                            <div className="flex-1">
-                                <h3 className="text-lg font-bold text-gray-800">{app.policyTitle}</h3>
-                                <p className="text-sm text-gray-600">Applicant: {app.personal?.name || 'N/A'}</p>
-                                <span
-                                    className={`px-3 py-1 text-xs font-medium rounded-full mt-1 inline-block ${app.status === 'Approved'
-                                        ? 'bg-green-100 text-green-800'
-                                        : app.status === 'Rejected'
-                                            ? 'bg-red-100 text-red-800'
-                                            : 'bg-yellow-100 text-yellow-800'
-                                        }`}
-                                >
-                                    {app.status}
-                                </span>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2 text-sm">
-                            <motion.button
-                                onClick={() => {
-                                    setSelectedPolicy(app);
-                                    setDetailsOpen(true);
-                                }}
-                                className="px-3 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg shadow-md hover:from-blue-600 hover:to-cyan-600 transition-all duration-200"
-                                whileTap={{ scale: 0.95 }}
-                            >
-                                Details
-                            </motion.button>
-
-                            {/* Mobile Review Button Logic */}
-                            {(app.status === 'Approved' || app.status === 'Pending') ? (
-                                <motion.button
-                                    onClick={() => handleReview(app)}
-                                    className={`px-3 py-2 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-lg shadow-md transition-all duration-200 ${app.status === 'Pending' ? 'opacity-50 cursor-not-allowed' : 'hover:from-purple-600 hover:to-indigo-600'
-                                        }`}
-                                    whileTap={app.status === 'Approved' ? { scale: 0.95 } : {}}
-                                    disabled={app.status === 'Pending'}
-                                >
-                                    Review
-                                </motion.button>
-                            ) : (
-                                <span className="px-3 py-2 text-center text-gray-400 italic text-xs">No Review</span>
-                            )}
-
-                            {/* Mobile Download Policy Button Logic */}
-                            <motion.button
-                                onClick={() => generatePDF(app)}
-                                className={`px-3 py-2 bg-gradient-to-r from-green-500 to-teal-500 text-white rounded-lg shadow-md transition-all duration-200 col-span-2 ${app.status !== 'Approved' ? 'opacity-50 cursor-not-allowed' : 'hover:from-green-600 hover:to-teal-600'
-                                    }`}
-                                whileTap={app.status === 'Approved' ? { scale: 0.95 } : {}}
-                                disabled={app.status !== 'Approved'}
-                            >
-                                Download Policy
-                            </motion.button>
-                        </div>
-                    </motion.div>
-                ))}
-            </div>
-
-            {/* Details Modal */}
-            <AnimatePresence>
-                {selectedPolicy && detailsOpen && (
-                    <Dialog
-                        open={true}
-                        onClose={() => setDetailsOpen(false)}
-                        className="fixed z-50 inset-0 overflow-y-auto"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.3 }}
-                    >
-                        <div className="flex items-center justify-center min-h-screen px-4">
-                            <Dialog.Panel className="bg-white w-full max-w-lg p-6 rounded-2xl shadow-2xl transform transition-all duration-300">
-                                <div className="flex justify-between items-center mb-4">
-                                    <Dialog.Title className="text-2xl font-bold bg-gradient-to-r from-green-600 to-teal-500 bg-clip-text text-transparent">
-                                        {selectedPolicy.policyTitle} Details
-                                    </Dialog.Title>
-                                    <motion.button
-                                        onClick={() => setDetailsOpen(false)}
-                                        className="text-gray-500 hover:text-red-500 transition-colors duration-200"
-                                        whileHover={{ scale: 1.1 }}
-                                        whileTap={{ scale: 0.9 }}
-                                    >
-                                        <X size={24} />
-                                    </motion.button>
-                                </div>
-                                <div className="space-y-4 text-gray-700">
-                                    <p>
-                                        <strong>Applicant:</strong> {selectedPolicy.personal?.name || 'N/A'}
-                                    </p>
-                                    <p>
-                                        <strong>Email:</strong> {selectedPolicy.personal?.email || 'N/A'}
-                                    </p>
-                                    <p>
-                                        <strong>Address:</strong> {selectedPolicy.personal?.address || 'N/A'}
-                                    </p>
-                                    <p>
-                                        <strong>NID:</strong> {selectedPolicy.personal?.nid || 'N/A'}
-                                    </p>
-                                    <p>
-                                        <strong>Nominee:</strong> {selectedPolicy.nominee?.name || 'N/A'} (
-                                        {selectedPolicy.nominee?.relationship || 'N/A'})
-                                    </p>
-                                    <p>
-                                        <strong>Health Disclosure:</strong>{' '}
-                                        {selectedPolicy.healthDisclosure?.length
-                                            ? selectedPolicy.healthDisclosure.join(', ')
-                                            : 'None'}
-                                    </p>
-                                    <p>
-                                        <strong>Created At:</strong>{' '}
-                                        {selectedPolicy.createdAt
-                                            ? new Date(selectedPolicy.createdAt).toLocaleDateString()
-                                            : 'N/A'}
-                                    </p>
-                                    <p>
-                                        <strong>Status:</strong> {selectedPolicy.status || 'N/A'}
-                                    </p>
-                                    <motion.img
-                                        src={selectedPolicy.policyImg || '/default-policy.jpg'}
-                                        alt={selectedPolicy.policyTitle}
-                                        className="w-full h-48 object-cover rounded-xl border-2 border-teal-500 hover:border-teal-600 transition-all duration-200"
+                                        onClick={handleSubmitRejectFeedback}
+                                        className="px-4 py-2 rounded-md bg-red-500 text-white text-sm shadow hover:bg-red-600"
                                         whileHover={{ scale: 1.05 }}
-                                    />
-                                    {/* Display additional policy details in the modal */}
-                                    {policies[selectedPolicy.policyId] && (
-                                        <>
-                                            <h3 className="text-xl font-bold mt-4">Policy Plan Details:</h3>
-                                            <p>
-                                                <strong>Category:</strong> {policies[selectedPolicy.policyId].category || 'N/A'}
-                                            </p>
-                                            <p>
-                                                <strong>Description:</strong> {policies[selectedPolicy.policyId].description || 'N/A'}
-                                            </p>
-                                            <p>
-                                                <strong>Min Age:</strong> {policies[selectedPolicy.policyId].minAge || 'N/A'}
-                                            </p>
-                                            <p>
-                                                <strong>Max Age:</strong> {policies[selectedPolicy.policyId].maxAge || 'N/A'}
-                                            </p>
-                                            <p>
-                                                <strong>Coverage Range:</strong> {policies[selectedPolicy.policyId].coverageRange || 'N/A'}
-                                            </p>
-                                            <p>
-                                                <strong>Duration Options:</strong> {policies[selectedPolicy.policyId].durationOptions?.join(', ') || 'N/A'}
-                                            </p>
-                                            <p>
-                                                <strong>Base Premium Rate:</strong> {policies[selectedPolicy.policyId].basePremiumRate || 'N/A'}
-                                            </p>
-                                            <p>
-                                                <strong>Benefits:</strong> {policies[selectedPolicy.policyId].benefits?.join(', ') || 'N/A'}
-                                            </p>
-                                            <p>
-                                                <strong>Eligibility:</strong> {policies[selectedPolicy.policyId].eligibility || 'N/A'}
-                                            </p>
-                                            <p>
-                                                <strong>Premium Logic Note:</strong> {policies[selectedPolicy.policyId].premiumLogicNote || 'N/A'}
-                                            </p>
-                                        </>
-                                    )}
-                                </div>
-                            </Dialog.Panel>
-                        </div>
-                    </Dialog>
-                )}
-            </AnimatePresence>
-
-            {/* Review Modal */}
-            <AnimatePresence>
-                {selectedPolicy && isOpen && (
-                    <Dialog
-                        open={true}
-                        onClose={() => setIsOpen(false)}
-                        className="fixed z-50 inset-0 overflow-y-auto"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.3 }}
-                    >
-                        <div className="flex items-center justify-center min-h-screen px-4">
-                            <Dialog.Panel className="bg-white w-full max-w-md p-6 rounded-2xl shadow-2xl transform transition-all duration-300">
-                                <div className="flex justify-between items-center mb-4">
-                                    <Dialog.Title className="text-2xl font-bold bg-gradient-to-r from-purple-500 to-indigo-500 bg-clip-text text-transparent">
-                                        Submit Review for {selectedPolicy.policyTitle}
-                                    </Dialog.Title>
-                                    <motion.button
-                                        onClick={() => setIsOpen(false)}
-                                        className="text-gray-500 hover:text-red-500 transition-colors duration-200"
-                                        whileHover={{ scale: 1.1 }}
-                                        whileTap={{ scale: 0.9 }}
+                                        whileTap={{ scale: 0.95 }}
                                     >
-                                        <X size={24} />
+                                        Submit Rejection
                                     </motion.button>
                                 </div>
-                                <div className="space-y-4">
-                                    <div className="flex space-x-1">
-                                        {[1, 2, 3, 4, 5].map((star) => (
-                                            <motion.div key={star} whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }}>
-                                                <Star
-                                                    onClick={() => setRating(star)}
-                                                    className={`cursor-pointer w-8 h-8 ${rating >= star ? 'text-yellow-400 ' : 'text-gray-300'
-                                                        } transition-colors duration-200`}
-                                                />
-                                            </motion.div>
-                                        ))}
-                                    </div>
-                                    <textarea
-                                        value={feedback}
-                                        onChange={(e) => setFeedback(e.target.value)}
-
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200 "
-                                        rows={4}
-                                        placeholder="Share your thoughts..."
-                                    />
-                                    <div className="flex justify-end space-x-2">
-                                        <motion.button
-                                            onClick={() => setIsOpen(false)}
-                                            className="px-4 py-2 bg-gray-400 text-white rounded-xl shadow-md hover:shadow-lg hover:bg-gray-500 transition-all duration-200"
-                                            whileHover={{ scale: 1.05 }}
-                                            whileTap={{ scale: 0.95 }}
-                                        >
-                                            Cancel
-                                        </motion.button>
-                                        <motion.button
-                                            onClick={submitReview}
-                                            className="px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-xl shadow-md hover:shadow-lg hover:from-purple-600 hover:to-indigo-600 transition-all duration-200"
-                                            whileHover={{ scale: 1.05 }}
-                                            whileTap={{ scale: 0.95 }}
-                                            disabled={!rating || !feedback}
-                                        >
-                                            Submit Review
-                                        </motion.button>
-                                    </div>
-                                </div>
-                            </Dialog.Panel>
-                        </div>
+                            </div>
+                        </motion.div>
                     </Dialog>
                 )}
-            </AnimatePresence>
-        </motion.div>
+            </motion.div>
+        </>
     );
-}
+};
+
+export default ManageApplications;

@@ -1,12 +1,67 @@
-# React + Vite
+# 🛡️ Life Insurance Management Platform
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern, full-stack life insurance management web application designed for seamless interaction between customers, agents, and administrators. Built with the **MERN Stack**, this platform enables users to explore policies, get personalized quotes, apply for insurance, manage payments, and track claims—all from a secure and responsive web interface.
 
-Currently, two official plugins are available:
+## 🔗 Live Site
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+[🌐 Visit Live Website](https://assignment-11-6aa37.web.app/)
 
-## Expanding the ESLint configuration
+## 🔐 Admin Credentials
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+-   **Email:** admin@insurehub.com
+-   **Password:** Admin@123
+
+## 🧠 Tech Stack
+
+-   **Frontend:** React.js, Tailwind CSS, Framer Motion, Headless UI, React Router, React Hook Form, SweetAlert2, React Helmet Async
+-   **Backend:** Express.js, MongoDB, JWT, Stripe
+-   **Authentication:** Firebase Auth (Email/Password + Google)
+-   **State/Data Management:** @tanstack/react-query
+-   **Other Tools:** PDF Generator, React Icons, Date-fns
+
+---
+
+## ✅ Features
+
+-   🔐 **Role-Based Authentication:** Admin, Agent, Customer (with JWT & Firebase)
+-   📱 **Fully Responsive UI:** Mobile, Tablet & Desktop compatible
+-   🎯 **Policy Quote Calculator:** Custom quote based on age, gender, duration, etc.
+-   🧾 **Policy Application System:** Apply online and track application status
+-   👩‍💼 **Agent Assignment & Application Management:** Admins can assign agents
+-   💬 **Admin Rejection with Feedback Modal** with database storage
+-   💳 **Stripe Payment Integration:** Secure premium payment & status tracking
+-   📁 **Policy Claim System:** Customers can submit and track claims
+-   📈 **Transaction History:** Track payments & generate reports with filters
+-   ✍️ **Blog System:** Role-based blog creation, editing, and listing
+-   📸 **Profile Management:** Role badge, profile update & last login info
+-   📜 **PDF Generation:** Download approved policy as a PDF
+-   🌟 **Testimonials:** Star rating + review shown dynamically on homepage
+-   🔍 **Search & Filter Policies:** Keyword search & category filters
+-   📰 **Newsletter Subscription:** Stores data in DB
+-   🎉 **SweetAlert2 & Toastify Integration:** No default browser alerts
+-   🧠 **Clean & Structured Codebase:** Reusable components, optimized queries
+-   🔁 **Pagination & Sorting:** Policies page supports pagination
+-   🎨 **Dynamic Helmet Titles** across routes
+
+---
+
+## 🧭 Folder Structure
+
+```bash
+├── client/
+│   ├── public/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── layouts/
+│   │   ├── pages/
+│   │   ├── hooks/
+│   │   ├── routes/
+│   │   ├── context/
+│   │   └── main.jsx
+├── server/
+│   ├── controllers/
+│   ├── routes/
+│   ├── models/
+│   ├── middlewares/
+│   └── index.js
+```

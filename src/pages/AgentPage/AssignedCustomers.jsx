@@ -6,14 +6,18 @@ import { motion } from 'framer-motion';
 import { Dialog } from '@headlessui/react';
 import useAuth from '../../hooks/useAuth';
 import { axiosSecure } from '../../hooks/useAxiosSecure';
-import Swal from 'sweetalert2'; // Import SweetAlert2
+import Swal from 'sweetalert2';
 
 const AssignedCustomers = () => {
     const queryClient = useQueryClient();
-    const { user } = useAuth(); // ⬅️ Get logged-in user
+    const { user } = useAuth();
     const [selectedCustomer, setSelectedCustomer] = useState(null);
+    const [isRejectModalOpen, setIsRejectModalOpen] = useState(false); // State for rejection feedback modal
+    const [rejectFeedback, setRejectFeedback] = useState(''); // State for rejection feedback text
+    const [rejectAssignmentId, setRejectAssignmentId] = useState(null); // State for the assignment being rejected
+    const [rejectApplicationId, setRejectApplicationId] = useState(null); // State for the application being rejected
 
-    const agentEmail = user?.email; // Use authenticated agent's email
+    const agentEmail = user?.email;
 
     const { data: assignedCustomers = [], isLoading, error } = useQuery({
         queryKey: ['assignedCustomers', agentEmail],
@@ -30,19 +34,24 @@ const AssignedCustomers = () => {
     });
 
     const updateAssignedCustomerStatus = useMutation({
-        mutationFn: async ({ assignmentId, newStatus, policyId }) => {
+        mutationFn: async ({ assignmentId, applicationId, newStatus, policyId, rejectFeedback }) => {
+            // Update dataForAgents collection
             const updatePayload = { status: newStatus };
-
-            // Removed: Conditional logic to set paymentStatus: 'Due' here.
-            // paymentStatus is now expected to be set by default at application submission.
-
-            // Keep policyId in the payload if the backend uses it for dataForAgents document.
-            if (policyId) {
-                updatePayload.policyId = policyId;
+            if (rejectFeedback) {
+                updatePayload.rejectFeedback = rejectFeedback;
             }
 
-            const res = await axiosSecure.patch(`/dataForAgents/${assignmentId}`, updatePayload);
-            return res.data;
+            const dataForAgentsRes = await axiosSecure.patch(`/dataForAgents/${assignmentId}`, updatePayload);
+
+            // Update applications collection
+            const applicationUpdatePayload = { status: newStatus };
+            if (rejectFeedback) {
+                applicationUpdatePayload.rejectFeedback = rejectFeedback;
+            }
+
+            const applicationRes = await axiosSecure.patch(`/applicationUpdate/${applicationId}`, applicationUpdatePayload);
+
+            return { dataForAgentsRes: dataForAgentsRes.data, applicationRes: applicationRes.data, newStatus, policyId };
         },
         onSuccess: (data, variables) => {
             queryClient.invalidateQueries(['assignedCustomers', agentEmail]);
@@ -51,7 +60,7 @@ const AssignedCustomers = () => {
             Swal.fire({
                 icon: 'success',
                 title: 'Status Updated!',
-                text: `Customer status changed to ${variables.newStatus}.`,
+                text: `Customer status changed to ${variables.newStatus}${variables.newStatus === 'Rejected' ? '. Feedback recorded.' : '.'}`,
                 timer: 2000,
                 showConfirmButton: false,
             });
@@ -62,20 +71,53 @@ const AssignedCustomers = () => {
                     .then(() => console.log(`Policy ${variables.policyId} purchase count updated.`))
                     .catch((err) => console.error('Error updating policy count:', err.message));
             }
+
+            setIsRejectModalOpen(false);
+            setRejectFeedback('');
+            setRejectAssignmentId(null);
+            setRejectApplicationId(null);
         },
         onError: (err) => {
             console.error('Status update failed:', err.message);
-            // SweetAlert for failed status change
             Swal.fire({
                 icon: 'error',
                 title: 'Update Failed!',
                 text: `Failed to update status: ${err.message}`,
             });
+            setIsRejectModalOpen(false);
+            setRejectFeedback('');
+            setRejectAssignmentId(null);
+            setRejectApplicationId(null);
         },
     });
 
-    const handleStatusChange = (assignmentId, newStatus, policyId) => {
-        updateAssignedCustomerStatus.mutate({ assignmentId, newStatus, policyId });
+    const handleStatusChange = (assignmentId, applicationId, newStatus, policyId) => {
+        if (newStatus === 'Rejected') {
+            setRejectAssignmentId(assignmentId);
+            setRejectApplicationId(applicationId);
+            setIsRejectModalOpen(true);
+        } else {
+            updateAssignedCustomerStatus.mutate({ assignmentId, applicationId, newStatus, policyId });
+        }
+    };
+
+    const handleSubmitRejectFeedback = () => {
+        if (!rejectFeedback.trim()) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Feedback Required',
+                text: 'Please provide a reason for rejecting the application.',
+            });
+            return;
+        }
+
+        updateAssignedCustomerStatus.mutate({
+            assignmentId: rejectAssignmentId,
+            applicationId: rejectApplicationId,
+            newStatus: 'Rejected',
+            policyId: null, // Policy ID not needed for rejection
+            rejectFeedback: rejectFeedback.trim(),
+        });
     };
 
     if (isLoading) {
@@ -111,7 +153,7 @@ const AssignedCustomers = () => {
                     <p className="text-center text-gray-600 text-lg py-10">No customers assigned to you yet.</p>
                 ) : (
                     <>
-                        {/* ✅ Desktop Table */}
+                        {/* Desktop Table */}
                         <div className="overflow-x-auto hidden md:block">
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
@@ -142,7 +184,7 @@ const AssignedCustomers = () => {
                                                 <select
                                                     value={customer.status}
                                                     onChange={(e) =>
-                                                        handleStatusChange(customer._id, e.target.value, customer.policyId)
+                                                        handleStatusChange(customer._id, customer.applicationId, e.target.value, customer.policyId)
                                                     }
                                                     className={`px-2 py-1 border rounded-md text-sm ${customer.status === 'Pending'
                                                         ? 'bg-yellow-100 text-yellow-800'
@@ -173,7 +215,7 @@ const AssignedCustomers = () => {
                             </table>
                         </div>
 
-                        {/* ✅ Mobile View */}
+                        {/* Mobile View */}
                         <div className="md:hidden flex flex-col gap-3">
                             {assignedCustomers.map((customer) => (
                                 <motion.div
@@ -201,7 +243,7 @@ const AssignedCustomers = () => {
                                         <select
                                             value={customer.status}
                                             onChange={(e) =>
-                                                handleStatusChange(customer._id, e.target.value, customer.policyId)
+                                                handleStatusChange(customer._id, customer.applicationId, e.target.value, customer.policyId)
                                             }
                                             onClick={(e) => e.stopPropagation()}
                                             disabled={updateAssignedCustomerStatus.isLoading}
@@ -235,7 +277,7 @@ const AssignedCustomers = () => {
                     </>
                 )}
 
-                {/* ✅ Modal for Customer Details */}
+                {/* Modal for Customer Details */}
                 {selectedCustomer && (
                     <Dialog
                         open={true}
@@ -292,9 +334,11 @@ const AssignedCustomers = () => {
                                         {selectedCustomer.status}
                                     </span>
                                 </p>
-                                {/* Removed: Display Payment Status in Modal */}
-                                {/* The previous code block for payment status was here and has been removed. */}
-
+                                {selectedCustomer.status === 'Rejected' && selectedCustomer.rejectFeedback && (
+                                    <p>
+                                        <strong>Rejection Feedback:</strong> {selectedCustomer.rejectFeedback}
+                                    </p>
+                                )}
                                 {selectedCustomer.personal && (
                                     <>
                                         <hr className="border-gray-200" />
@@ -329,7 +373,6 @@ const AssignedCustomers = () => {
                                     </>
                                 )}
 
-                                {/* Policy & Quote Details Section */}
                                 {selectedCustomer.quoteDetails && (
                                     <>
                                         <hr className="border-gray-200" />
@@ -370,6 +413,63 @@ const AssignedCustomers = () => {
                                         </p>
                                     </>
                                 )}
+                            </div>
+                        </motion.div>
+                    </Dialog>
+                )}
+
+                {/* Modal for Rejection Feedback */}
+                {isRejectModalOpen && (
+                    <Dialog
+                        open={true}
+                        onClose={() => setIsRejectModalOpen(false)}
+                        className="fixed z-50 inset-0 overflow-y-auto bg-black/40 flex items-center justify-center p-4"
+                    >
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            transition={{ duration: 0.3 }}
+                            className="bg-white w-full max-w-md p-6 rounded-2xl shadow-2xl relative"
+                        >
+                            <button
+                                onClick={() => setIsRejectModalOpen(false)}
+                                className="absolute top-4 right-4 text-gray-500 hover:text-red-500 transition"
+                            >
+                                <X size={24} />
+                            </button>
+
+                            <Dialog.Title className="text-2xl font-bold text-gray-800 mb-4">
+                                Provide Rejection Feedback
+                            </Dialog.Title>
+
+                            <div className="space-y-4">
+                                <p className="text-gray-600">Please provide a reason for rejecting this application:</p>
+                                <textarea
+                                    value={rejectFeedback}
+                                    onChange={(e) => setRejectFeedback(e.target.value)}
+                                    className="w-full p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                    rows="4"
+                                    placeholder="Enter reason for rejection..."
+                                />
+                                <div className="flex justify-end gap-2">
+                                    <motion.button
+                                        onClick={() => setIsRejectModalOpen(false)}
+                                        className="px-4 py-2 rounded-md bg-gray-300 text-gray-800 text-sm shadow hover:bg-gray-400"
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                    >
+                                        Cancel
+                                    </motion.button>
+                                    <motion.button
+                                        onClick={handleSubmitRejectFeedback}
+                                        className="px-4 py-2 rounded-md bg-red-500 text-white text-sm shadow hover:bg-red-600"
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                    >
+                                        Submit Rejection
+                                    </motion.button>
+                                </div>
                             </div>
                         </motion.div>
                     </Dialog>
