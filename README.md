@@ -65,3 +65,10 @@ A modern, full-stack life insurance management web application designed for seam
 │   ├── middlewares/
 │   └── index.js
 ```
+
+VITE_FIREBASE_API_KEY=your_api_key
+VITE_FIREBASE_AUTH_DOMAIN=...
+VITE_FIREBASE_PROJECT_ID=...
+MONGODB_URI=your_mongodb_uri
+JWT_SECRET=your_jwt_secret
+STRIPE_SECRET_KEY=your_stripe_key
