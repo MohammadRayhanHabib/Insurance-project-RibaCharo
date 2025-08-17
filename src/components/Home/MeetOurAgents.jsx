@@ -39,12 +39,10 @@ const MeetOurAgents = () => {
 
     return (
         <>
-            <Helmet>
-                <title>Meet Our Agents</title>
-            </Helmet>
+
 
             <motion.div
-                className=" mx-auto p-4 sm:p-6 bg-white rounded-3xl shadow-2xl"
+                className="mt-10 mx-auto  p-4 sm:p-6 bg-white rounded-3xl shadow-2xl"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
