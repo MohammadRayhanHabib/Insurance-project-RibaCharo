@@ -30,7 +30,7 @@ const usePolicyManagement = (page = 1, limit = 9, category = '', search = '') =>
                 params.search = search;
             }
 
-            console.log("Fetching policies with params:", params);
+            // console.log("Fetching policies with params:", params);
             const res = await axiosSecure.get('/policies', { params });
             return res.data || { policies: [], total: 0 };
         },
@@ -51,7 +51,7 @@ const usePolicyManagement = (page = 1, limit = 9, category = '', search = '') =>
                 // Correct usage: pass the File object to saveImgCloud
                 const url = await saveImgCloud(data.imageFile);
                 policyImageURL = url; // Assign the returned URL
-                console.log("Image uploaded to:", policyImageURL);
+                // console.log("Image uploaded to:", policyImageURL);
             } catch (uploadError) {
                 console.error("Failed to upload image:", uploadError);
                 throw new Error("Failed to upload policy image."); // Propagate error to mutation's onError
@@ -71,7 +71,7 @@ const usePolicyManagement = (page = 1, limit = 9, category = '', search = '') =>
     const addPolicyMutation = useMutation({
         mutationFn: async (newPolicyData) => {
             const dataWithImageUrl = await preparePolicyData(newPolicyData);
-            console.log("Attempting to add policy:", dataWithImageUrl);
+            // console.log("Attempting to add policy:", dataWithImageUrl);
             const res = await axiosSecure.post('/policies', dataWithImageUrl);
             return res.data;
         },
@@ -99,7 +99,7 @@ const usePolicyManagement = (page = 1, limit = 9, category = '', search = '') =>
     const updatePolicyMutation = useMutation({
         mutationFn: async (updatedPolicyData) => {
             const dataWithImageUrl = await preparePolicyData(updatedPolicyData);
-            console.log("Attempting to update policy:", dataWithImageUrl);
+            // console.log("Attempting to update policy:", dataWithImageUrl);
             // Using the /policyUpdate/:id endpoint as per your backend
             const res = await axiosSecure.patch(`/policyUpdate/${updatedPolicyData._id}`, dataWithImageUrl);
             return res.data;
@@ -127,7 +127,7 @@ const usePolicyManagement = (page = 1, limit = 9, category = '', search = '') =>
     // Mutation for deleting a policy
     const deletePolicyMutation = useMutation({
         mutationFn: async (policyId) => {
-            console.log("Attempting to delete policy:", policyId);
+            // console.log("Attempting to delete policy:", policyId);
             // Corrected path to /policy/:id as per your backend route
             const res = await axiosSecure.delete(`/policy/${policyId}`);
             return res.data;

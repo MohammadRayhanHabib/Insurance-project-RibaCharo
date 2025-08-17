@@ -26,7 +26,7 @@ const PaymentStatus = () => {
             // This endpoint should return applications that are 'Approved'
             // AND include 'premiumAmount', 'paymentFrequency', 'paymentStatus' fields
             const res = await axiosSecure(`/applications/${user?.email}/approved-for-payment`);
-            console.log(res);
+            // console.log(res);
 
             return res.data;
         },

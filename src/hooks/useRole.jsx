@@ -32,7 +32,7 @@ const useRole = () => {
     //     getUserRoleFetch()
 
     // }, [axiosSecure, user])
-    console.log(role?.role);
+    // console.log(role?.role);
 
 
     return [role?.role, loaderForRole]

@@ -118,7 +118,7 @@ const CheckoutForm = ({ application, premiumAmount, paymentFrequency }) => {
             setAlertType('error');
             setProcessing(false);
         } else if (paymentIntent.status === 'succeeded') {
-            console.log('[PaymentIntent]', paymentIntent);
+            // console.log('[PaymentIntent]', paymentIntent);
 
             const paymentInfo = {
                 applicationId: application._id,

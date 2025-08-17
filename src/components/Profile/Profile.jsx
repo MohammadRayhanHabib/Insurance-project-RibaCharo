@@ -45,7 +45,7 @@ export default function ProfileComponent() {
     const handleSave = () => {
         if (updateUserProfile) {
             updateUserProfile(name, photo);
-            console.log("Saved:", { name, photo });
+            // console.log("Saved:", { name, photo });
         } else {
             console.error("updateUserProfile function is not available");
         }

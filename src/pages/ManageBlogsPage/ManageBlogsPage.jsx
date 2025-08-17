@@ -8,9 +8,13 @@ import useAxiosSecure from '../../hooks/useAxiosSecure';
 
 // UPDATED: Importing saveImgCloud from a utility file
 import { saveImgCloud } from '../../api/utils';
+import useRole from '../../hooks/useRole';
 
 
 const ManageBlogsPage = () => {
+    const [role] = useRole()
+    console.log(role);
+
     const [blogs, setBlogs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -30,7 +34,7 @@ const ManageBlogsPage = () => {
     const axiosSecure = useAxiosSecure();
     const { user } = useAuth();
 
-    const userRole = user?.role || 'agent';
+
 
     useEffect(() => {
         if (user?.email) {
@@ -54,7 +58,7 @@ const ManageBlogsPage = () => {
             setLoading(true);
             let response;
 
-            if (userRole === 'admin') {
+            if (role === 'admin') {
                 response = await axiosSecure.get('/blogs');
             } else {
                 response = await axiosSecure.get(`/blogs/author/${user.email}`);
@@ -213,7 +217,7 @@ const ManageBlogsPage = () => {
     };
 
     const canEditDelete = (blog) => {
-        return userRole === 'admin' || blog.authorEmail === user?.email;
+        return role === 'admin' || blog.authorEmail === user?.email;
     };
 
     const getTodayBlogsCount = () => {
@@ -241,7 +245,7 @@ const ManageBlogsPage = () => {
             try {
                 const imageUrl = await saveImgCloud(file);
                 setFormData(prev => ({ ...prev, blogImageUrl: imageUrl }));
-                console.log('Image uploaded successfully:', imageUrl);
+                // console.log('Image uploaded successfully:', imageUrl);
                 // UPDATED: Using SweetAlert2 for upload success notification
                 Swal.fire({
                     icon: 'success',
@@ -287,7 +291,7 @@ const ManageBlogsPage = () => {
                             <div>
                                 <h1 className="text-2xl font-bold text-gray-900">📰 Manage Blogs</h1>
                                 <p className="text-gray-600 mt-1">
-                                    {userRole === 'admin'
+                                    {role === 'admin'
                                         ? 'Manage all insurance blog posts'
                                         : 'Manage your insurance blog posts'}
                                 </p>
@@ -315,7 +319,7 @@ const ManageBlogsPage = () => {
                     </div>
                     <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
                         <h3 className="text-sm font-medium text-gray-500">Your Role</h3>
-                        <p className="text-3xl font-bold text-blue-600 capitalize">{userRole}</p>
+                        <p className="text-3xl font-bold text-blue-600 capitalize">{role}</p>
                     </div>
                 </div>
 

@@ -8,7 +8,7 @@ const MainLayout = () => {
     const { loading: authLoading } = useAuth();
     const navigation = useNavigation();
     return (
-        <div className='bg-white'>
+        <div className=''>
             <Navbar />
             <div className=' min-h-screen'>
 

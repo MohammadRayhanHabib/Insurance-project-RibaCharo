@@ -68,9 +68,9 @@ const AssignedCustomers = () => {
             if (variables.newStatus === 'Approved' && variables.policyId) {
                 axiosSecure
                     .patch(`/policies/${variables.policyId}`, { $inc: { purchaseCount: 1 } })
-                    .then(() => console.log(`Policy ${variables.policyId} purchase count updated.`))
                     .catch((err) => console.error('Error updating policy count:', err.message));
             }
+
 
             setIsRejectModalOpen(false);
             setRejectFeedback('');

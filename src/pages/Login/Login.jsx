@@ -50,7 +50,7 @@ const Login = () => {
         try {
             setLoading(true);
             const result = await signInWithGoogle()
-            console.log(result?.lastLoginAt);
+            // console.log(result?.lastLoginAt);
             navigate("/");
             const UserData = {
                 name: result?.user?.displayName,

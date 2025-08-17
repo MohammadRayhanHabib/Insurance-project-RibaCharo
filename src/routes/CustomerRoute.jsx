@@ -9,8 +9,8 @@ import ErrorPage from '../pages/ErrorPage'
 const CustomerRoute = ({ children }) => {
     const [role, isRoleLoading] = useRole()
     const location = useLocation()
-    console.log(location)
-    console.log('Customer route')
+    // console.log(location)
+    // console.log('Customer route')
     if (isRoleLoading) return <LoadingSpinner />
     if (role === 'customer') return children
     // return <ErrorPage></ErrorPage>;

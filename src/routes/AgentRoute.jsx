@@ -8,8 +8,8 @@ import LoadingSpinner from '../components/Shared/Spinner/LoadingSpinner'
 const AgentRoute = ({ children }) => {
     const [role, isRoleLoading] = useRole()
     const location = useLocation()
-    console.log(location)
-    console.log('Agent route')
+    // console.log(location)
+    // console.log('Agent route')
     if (isRoleLoading) return <LoadingSpinner />
     if (role === 'agent') return children
     return <Navigate to='/' replace='true' />

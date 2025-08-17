@@ -14,7 +14,7 @@ const ManageUsers = () => {
     const [selectedUser, setSelectedUser] = useState(null);
 
 
-    console.log();
+    // console.log();
 
     const { data: users = [], isLoading, error } = useQuery({
         queryKey: ['users'],
