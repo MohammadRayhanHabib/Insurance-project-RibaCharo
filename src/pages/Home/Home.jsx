@@ -8,6 +8,7 @@ import MeetOurAgents from "../../components/Home/MeetOurAgents"
 import NewsletterSubscription from "../../components/Home/NewsletterSubscription"
 
 import PopularPolicies from "../../components/Home/PopularPolicies"
+import WhyChooseUs from "../../components/Home/WhyChooseUs"
 
 
 
@@ -18,6 +19,7 @@ const Home = () => {
             <PopularPolicies></PopularPolicies>
             <LatestBlogsSection></LatestBlogsSection>
             <CustomerReviews></CustomerReviews>
+            <WhyChooseUs></WhyChooseUs>
             <NewsletterSubscription></NewsletterSubscription>
             <MeetOurAgents></MeetOurAgents>
             {/* <Footer></Footer> */}
