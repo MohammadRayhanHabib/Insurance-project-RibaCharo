@@ -2,12 +2,14 @@ import BannerSlider from "../../components/Home/Banner"
 import Banner from "../../components/Home/Banner"
 import HeroSection from "../../components/Home/Banner"
 import CustomerReviews from "../../components/Home/CustomerReviews"
+import InsuranceSections from "../../components/Home/InsuranceSections"
 
 import LatestBlogsSection from "../../components/Home/LatestBlogsSection"
 import MeetOurAgents from "../../components/Home/MeetOurAgents"
 import NewsletterSubscription from "../../components/Home/NewsletterSubscription"
 
 import PopularPolicies from "../../components/Home/PopularPolicies"
+import SalesPromotion from "../../components/Home/SalesPromotion"
 import WhyChooseUs from "../../components/Home/WhyChooseUs"
 
 
@@ -19,7 +21,9 @@ const Home = () => {
             <PopularPolicies></PopularPolicies>
             <LatestBlogsSection></LatestBlogsSection>
             <CustomerReviews></CustomerReviews>
-            <WhyChooseUs></WhyChooseUs>
+            {/* <WhyChooseUs></WhyChooseUs> */}
+            {/* <SalesPromotion></SalesPromotion> */}
+            <InsuranceSections></InsuranceSections>
             <NewsletterSubscription></NewsletterSubscription>
             <MeetOurAgents></MeetOurAgents>
             {/* <Footer></Footer> */}

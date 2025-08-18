@@ -61,7 +61,7 @@ const NewsletterSubscription = () => {
     };
 
     return (
-        <div className="mx-auto   lg:mt-45  font-inter">
+        <div className="mx-auto   lg:mt-10 p-2  font-inter">
             <div
                 className=" isolate overflow-hidden bg-gray-900 px-6 py-24 shadow-2xl rounded-2xl sm:rounded-3xl sm:px-24 xl:py-32">
 
