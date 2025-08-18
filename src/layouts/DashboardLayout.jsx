@@ -20,7 +20,7 @@ const DashboardLayout = () => {
                 {/* Sidebar - Fixed on all screens, toggleable on mobile */}
 
                 <div
-                    className={`fixed inset-y-0 left-0 z-50 mt-20 w-64  shadow-xl transform transition-transform duration-300 ease-in-out md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+                    className={`fixed inset-y-0 left-0 z-50 mt-20 w-64   transform transition-transform duration-300 ease-in-out md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
                         } md:w-64 lg:w-72`}
                 >
                     <Sidebar role={role} isOpen={isSidebarOpen} />
