@@ -85,7 +85,7 @@ const ManageUsers = () => {
                                 <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
+                        <tbody className="bg-white divide-y divide-gray-200 text-black">
                             {users.map(user => (
                                 <tr key={user._id} className="hover:bg-gray-50">
                                     <td className="px-4 py-4 flex items-center gap-2">

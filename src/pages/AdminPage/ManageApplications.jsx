@@ -231,7 +231,7 @@ const ManageApplications = () => {
                                         <th className="px-3 py-3 text-left text-xs sm:px-4 sm:text-sm font-semibold text-gray-700 whitespace-nowrap">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
+                                <tbody className="bg-white text-black divide-y divide-gray-200">
                                     {applications.map(app => (
                                         <tr key={app._id} className="hover:bg-gray-50 transition-all">
                                             <td className="px-3 py-4 flex items-center gap-2 sm:px-4">

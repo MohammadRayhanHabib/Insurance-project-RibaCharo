@@ -20,7 +20,7 @@ const DashboardLayout = () => {
                 {/* Sidebar - Fixed on all screens, toggleable on mobile */}
 
                 <div
-                    className={`fixed inset-y-0 left-0 z-50 mt-20 w-64 bg-white shadow-xl transform transition-transform duration-300 ease-in-out md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+                    className={`fixed inset-y-0 left-0 z-50 mt-20 w-64  shadow-xl transform transition-transform duration-300 ease-in-out md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
                         } md:w-64 lg:w-72`}
                 >
                     <Sidebar role={role} isOpen={isSidebarOpen} />
@@ -37,7 +37,7 @@ const DashboardLayout = () => {
                 {/* Main content area - Scrollable */}
                 <div className="flex-1 flex flex-col md:ml-64 lg:ml-72 w-full">
                     {/* Topbar for mobile toggle */}
-                    <div className="md:hidden flex items-center justify-between bg-white px-4 py-3 shadow-md sticky top-0 z-30">
+                    <div className="md:hidden flex items-center justify-between  px-4 py-3 shadow-md sticky top-0 z-30">
                         <button
                             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
                             className="text-gray-700 hover:text-green-600 focus:outline-none"
